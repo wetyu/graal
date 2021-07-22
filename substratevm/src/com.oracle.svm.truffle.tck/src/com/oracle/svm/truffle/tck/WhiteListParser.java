@@ -201,7 +201,7 @@ final class WhiteListParser extends ConfigurationParser {
         }
         Class<?> clz = imageClassLoader.findClass(useType).get();
         verifySupportedOnActivePlatform(clz);
-        return bigBang.forClass(clz);
+        return analysis.getMetaAccess().lookupJavaType(clz);
     }
 
     private void verifySupportedOnActivePlatform(Class<?> clz) throws UnsupportedPlatformException {
