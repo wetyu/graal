@@ -49,7 +49,6 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Predicate;
 
 import com.oracle.svm.hosted.analysis.NativeImageStaticAnalysisEngine;
-import jdk.vm.ci.common.JVMCIError;
 import org.graalvm.compiler.debug.DebugContext;
 import org.graalvm.compiler.graph.NodeInputList;
 import org.graalvm.compiler.nodes.Invoke;
@@ -195,8 +194,8 @@ public class PermissionsFeature implements Feature {
                             Options.TruffleTCKPermissionsExcludeFiles,
                             new ResourceAsOptionDecorator(getClass().getPackage().getName().replace('.', '/') + "/resources/jre.json"),
                             CONFIG);
-            reflectionProxy = analysis.getMetaAccess().lookupJavaType(loadOrFail("com.oracle.svm.reflect.helpers.ReflectionProxy"));
-            reflectionFieldAccessorFactory = analysis.getMetaAccess().lookupJavaType(loadOrFail(Package_jdk_internal_reflect.getQualifiedName() + ".UnsafeFieldAccessorFactory"));
+            reflectionProxy = analysis.getMetaAccess().lookupJavaType("com.oracle.svm.reflect.helpers.ReflectionProxy");
+            reflectionFieldAccessorFactory = analysis.getMetaAccess().lookupJavaType(Package_jdk_internal_reflect.getQualifiedName() + ".UnsafeFieldAccessorFactory");
             VMError.guarantee(reflectionProxy != null && reflectionFieldAccessorFactory != null, "Cannot load one or several reflection types");
             whiteList = parser.getLoadedWhiteList();
             Set<AnalysisMethod> deniedMethods = new HashSet<>();
@@ -240,14 +239,6 @@ public class PermissionsFeature implements Feature {
                                     });
                 }
             }
-        }
-    }
-
-    public Class<?> loadOrFail(String className) {
-        try {
-            return Class.forName(className);
-        } catch (ClassNotFoundException e) {
-            throw JVMCIError.shouldNotReachHere(e);
         }
     }
 
@@ -693,7 +684,7 @@ public class PermissionsFeature implements Feature {
         private final ImageClassLoader imageClassLoader;
 
         SafeServiceLoaderRecognizer(NativeImageStaticAnalysisEngine analysis, ImageClassLoader imageClassLoader) {
-            AnalysisType serviceLoaderIterator = analysis.getMetaAccess().lookupJavaType(loadOrFail("java.util.ServiceLoader$LazyIterator"));
+            AnalysisType serviceLoaderIterator = analysis.getMetaAccess().lookupJavaType("java.util.ServiceLoader$LazyIterator");
             Set<AnalysisMethod> methods = findMethods(analysis, serviceLoaderIterator, (m) -> m.getName().equals("nextService"));
             if (methods.size() != 1) {
                 throw new IllegalStateException("Failed to lookup ServiceLoader$LazyIterator.nextService().");
