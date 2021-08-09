@@ -42,14 +42,14 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
-import com.oracle.graal.pointsto.StaticAnalysisEngine;
+import com.oracle.graal.pointsto.BigBang;
 import org.graalvm.compiler.debug.GraalError;
 import org.graalvm.compiler.graph.Node;
 import org.graalvm.util.GuardedAnnotationAccess;
 import org.graalvm.word.WordBase;
 
-import com.oracle.graal.pointsto.BigBang;
-import com.oracle.graal.pointsto.BigBang.ConstantObjectsProfiler;
+import com.oracle.graal.pointsto.PointsToAnalysis;
+import com.oracle.graal.pointsto.PointsToAnalysis.ConstantObjectsProfiler;
 import com.oracle.graal.pointsto.api.DefaultUnsafePartition;
 import com.oracle.graal.pointsto.api.PointstoOptions;
 import com.oracle.graal.pointsto.constraints.UnsupportedFeatureException;
@@ -132,9 +132,9 @@ public class AnalysisType implements WrappedJavaType, OriginalClassProvider, Com
      * discovered by the static analysis.
      *
      * This list is not update during the analysis and is filled lazily when requested through
-     * {@link #getReferencedTypes(BigBang)}. For complete results
-     * {@link #getReferencedTypes(BigBang)} should only be called when the base analysis has
-     * finished.
+     * {@link #getReferencedTypes(PointsToAnalysis)}. For complete results
+     * {@link #getReferencedTypes(PointsToAnalysis)} should only be called when the base analysis
+     * has finished.
      */
     private List<AnalysisType> referencedTypes;
 
@@ -277,7 +277,7 @@ public class AnalysisType implements WrappedJavaType, OriginalClassProvider, Com
         return uniqueConstant;
     }
 
-    public AnalysisObject getCachedConstantObject(BigBang bb, JavaConstant constant) {
+    public AnalysisObject getCachedConstantObject(PointsToAnalysis bb, JavaConstant constant) {
 
         /*
          * Constant caching is only used we certain analysis policies. Ideally we would store the
@@ -316,7 +316,7 @@ public class AnalysisType implements WrappedJavaType, OriginalClassProvider, Com
         return result;
     }
 
-    private void mergeConstantObjects(BigBang bb) {
+    private void mergeConstantObjects(PointsToAnalysis bb) {
         ConstantContextSensitiveObject uConstant = new ConstantContextSensitiveObject(bb, this, null);
         if (UNIQUE_CONSTANT_UPDATER.compareAndSet(this, null, uConstant)) {
             constantObjectsCache.values().stream().forEach(constantObject -> {
@@ -338,7 +338,7 @@ public class AnalysisType implements WrappedJavaType, OriginalClassProvider, Com
      * Since this list is not updated during the analysis, for complete results this should only be
      * called when the base analysis has finished.
      */
-    public List<AnalysisType> getReferencedTypes(BigBang bb) {
+    public List<AnalysisType> getReferencedTypes(PointsToAnalysis bb) {
 
         if (referencedTypes == null) {
 
@@ -372,7 +372,7 @@ public class AnalysisType implements WrappedJavaType, OriginalClassProvider, Com
     public volatile AllInstantiatedTypeFlow assignableTypes;
     public volatile AllInstantiatedTypeFlow assignableTypesNonNull;
 
-    public AllInstantiatedTypeFlow getTypeFlow(BigBang bb, boolean includeNull) {
+    public AllInstantiatedTypeFlow getTypeFlow(PointsToAnalysis bb, boolean includeNull) {
         if (assignableTypes == null) {
             createTypeFlows(bb);
         }
@@ -384,7 +384,7 @@ public class AnalysisType implements WrappedJavaType, OriginalClassProvider, Com
         }
     }
 
-    private synchronized void createTypeFlows(BigBang bb) {
+    private synchronized void createTypeFlows(PointsToAnalysis bb) {
         if (assignableTypes != null) {
             return;
         }
@@ -404,8 +404,8 @@ public class AnalysisType implements WrappedJavaType, OriginalClassProvider, Com
 
     }
 
-    public static boolean verifyAssignableTypes(StaticAnalysisEngine analysis) {
-        List<AnalysisType> allTypes = analysis.getUniverse().getTypes();
+    public static boolean verifyAssignableTypes(BigBang bb) {
+        List<AnalysisType> allTypes = bb.getUniverse().getTypes();
 
         Set<String> mismatchedAssignableResults = ConcurrentHashMap.newKeySet();
         allTypes.parallelStream().filter(t -> t.assignableTypes != null).forEach(t1 -> {
@@ -433,7 +433,7 @@ public class AnalysisType implements WrappedJavaType, OriginalClassProvider, Com
         return true;
     }
 
-    public static void updateAssignableTypes(BigBang bb) {
+    public static void updateAssignableTypes(PointsToAnalysis bb) {
         /*
          * Update the assignable-state for all types. So do not post any update operations before
          * the computation is finished, because update operations must not see any intermediate
@@ -501,7 +501,7 @@ public class AnalysisType implements WrappedJavaType, OriginalClassProvider, Com
     }
 
     /** Called when the list of assignable types of a type is first initialized. */
-    private void updateTypeFlows(BigBang bb, TypeFlow<?> assignable, TypeFlow<?> assignableNonNull) {
+    private void updateTypeFlows(PointsToAnalysis bb, TypeFlow<?> assignable, TypeFlow<?> assignableNonNull) {
         if (isPrimitive() || isJavaLangObject()) {
             return;
         }
@@ -538,11 +538,11 @@ public class AnalysisType implements WrappedJavaType, OriginalClassProvider, Com
         updateFlow(bb, assignableNonNull, assignableTypeState.forNonNull(bb));
     }
 
-    private static void updateFlow(BigBang bb, TypeFlow<?> flow, TypeState newState) {
+    private static void updateFlow(PointsToAnalysis bb, TypeFlow<?> flow, TypeState newState) {
         updateFlow(bb, flow, newState, null);
     }
 
-    private static void updateFlow(BigBang bb, TypeFlow<?> flow, TypeState newState, List<TypeFlow<?>> changedFlows) {
+    private static void updateFlow(PointsToAnalysis bb, TypeFlow<?> flow, TypeState newState, List<TypeFlow<?>> changedFlows) {
         if (!flow.getState().equals(newState)) {
             flow.setState(bb, newState);
             if (changedFlows != null && (flow.getUses().size() > 0 || flow.getObservers().size() > 0)) {

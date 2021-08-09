@@ -33,7 +33,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import com.oracle.graal.pointsto.StaticAnalysisEngine;
+import com.oracle.graal.pointsto.BigBang;
 import com.oracle.graal.pointsto.ObjectScanner;
 import com.oracle.graal.pointsto.api.PointstoOptions;
 import com.oracle.graal.pointsto.meta.AnalysisField;
@@ -43,18 +43,18 @@ import jdk.vm.ci.meta.JavaConstant;
 
 public final class AnalysisHeapHistogramPrinter extends ObjectScanner {
 
-    public static void print(StaticAnalysisEngine analysis, String reportsPath, String reportName) {
+    public static void print(BigBang bb, String reportsPath, String reportName) {
         ReportUtils.report("analysis heap histogram", reportsPath, "analysis_heap_histogram_" + reportName, "txt",
-                        writer -> AnalysisHeapHistogramPrinter.doPrint(writer, analysis));
+                        writer -> AnalysisHeapHistogramPrinter.doPrint(writer, bb));
     }
 
-    private static void doPrint(PrintWriter out, StaticAnalysisEngine analysis) {
-        if (!PointstoOptions.ExhaustiveHeapScan.getValue(analysis.getOptions())) {
-            String types = Arrays.stream(analysis.skippedHeapTypes()).map(t -> t.toJavaName()).collect(Collectors.joining(", "));
+    private static void doPrint(PrintWriter out, BigBang bb) {
+        if (!PointstoOptions.ExhaustiveHeapScan.getValue(bb.getOptions())) {
+            String types = Arrays.stream(bb.skippedHeapTypes()).map(t -> t.toJavaName()).collect(Collectors.joining(", "));
             System.out.println("Exhaustive heap scanning is disabled. The analysis heap histogram will not contain all instances of types: " + types);
             System.out.println("Exhaustive heap scanning can be turned on using -H:+ExhaustiveHeapScan.");
         }
-        AnalysisHeapHistogramPrinter printer = new AnalysisHeapHistogramPrinter(analysis);
+        AnalysisHeapHistogramPrinter printer = new AnalysisHeapHistogramPrinter(bb);
         printer.scanBootImageHeapRoots(fieldComparator, positionComparator);
         printer.printHistogram(out);
     }
@@ -69,13 +69,13 @@ public final class AnalysisHeapHistogramPrinter extends ObjectScanner {
 
     private final Map<AnalysisType, Integer> histogram = new HashMap<>();
 
-    private AnalysisHeapHistogramPrinter(StaticAnalysisEngine analysis) {
-        super(analysis, null, new ReusableSet());
+    private AnalysisHeapHistogramPrinter(BigBang bb) {
+        super(bb, null, new ReusableSet());
     }
 
     @Override
     protected void forScannedConstant(JavaConstant scannedValue, ScanReason reason) {
-        AnalysisType type = constantType(analysis, scannedValue);
+        AnalysisType type = constantType(bb, scannedValue);
         int count = histogram.getOrDefault(type, 0);
         histogram.put(type, count + 1);
     }

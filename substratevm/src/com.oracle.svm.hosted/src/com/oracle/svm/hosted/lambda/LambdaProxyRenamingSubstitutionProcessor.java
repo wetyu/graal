@@ -24,7 +24,7 @@
  */
 package com.oracle.svm.hosted.lambda;
 
-import com.oracle.graal.pointsto.StaticAnalysisEngine;
+import com.oracle.graal.pointsto.BigBang;
 import org.graalvm.compiler.java.LambdaUtils;
 import java.util.HashSet;
 import java.util.Set;
@@ -52,15 +52,15 @@ import org.graalvm.compiler.phases.util.Providers;
  */
 public class LambdaProxyRenamingSubstitutionProcessor extends SubstitutionProcessor {
 
-    private final StaticAnalysisEngine analysis;
+    private final BigBang bb;
 
     private final ConcurrentHashMap<ResolvedJavaType, LambdaSubstitutionType> typeSubstitutions;
     private final Set<String> uniqueLambdaProxyNames;
 
-    LambdaProxyRenamingSubstitutionProcessor(StaticAnalysisEngine analysis) {
+    LambdaProxyRenamingSubstitutionProcessor(BigBang bb) {
         this.typeSubstitutions = new ConcurrentHashMap<>();
         this.uniqueLambdaProxyNames = new HashSet<>();
-        this.analysis = analysis;
+        this.bb = bb;
     }
 
     @Override
@@ -83,8 +83,8 @@ public class LambdaProxyRenamingSubstitutionProcessor extends SubstitutionProces
 
     private LambdaSubstitutionType getSubstitution(ResolvedJavaType original) {
         return typeSubstitutions.computeIfAbsent(original, (key) -> {
-            OptionValues options = analysis.getOptions();
-            DebugContext debug = new Builder(options, new GraalDebugHandlersFactory(analysis.getProviders().getSnippetReflection())).build();
+            OptionValues options = bb.getOptions();
+            DebugContext debug = new Builder(options, new GraalDebugHandlersFactory(bb.getProviders().getSnippetReflection())).build();
 
             Providers providers = GraalAccess.getOriginalProviders();
             String lambdaTargetName = LambdaUtils.findStableLambdaName(new NoClassInitializationPlugin(), providers, key, options, debug, this);

@@ -33,8 +33,8 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import com.oracle.graal.pointsto.AnalysisPolicy;
+import com.oracle.graal.pointsto.PointsToAnalysis;
 import com.oracle.graal.pointsto.BigBang;
-import com.oracle.graal.pointsto.StaticAnalysisEngine;
 import com.oracle.graal.pointsto.api.PointstoOptions;
 import com.oracle.graal.pointsto.flow.context.AnalysisContext;
 import com.oracle.graal.pointsto.flow.context.BytecodeLocation;
@@ -230,7 +230,7 @@ public abstract class TypeState {
     public abstract boolean canBeNull();
 
     /** Note that the objects of this type state have been merged. */
-    public void noteMerge(@SuppressWarnings("unused") BigBang bb) {
+    public void noteMerge(@SuppressWarnings("unused") PointsToAnalysis bb) {
     }
 
     /**
@@ -238,7 +238,7 @@ public abstract class TypeState {
      * MutiTypeState, e.g. for transferring the state from a virtual invoke type flow to the formal
      * receiver flow of a specific callee resolved on the specified type.
      */
-    public abstract TypeState exactTypeState(BigBang bb, AnalysisType exactType);
+    public abstract TypeState exactTypeState(PointsToAnalysis bb, AnalysisType exactType);
 
     public boolean verifyDeclaredType(AnalysisType declaredType) {
         if (declaredType != null) {
@@ -255,7 +255,7 @@ public abstract class TypeState {
      * The {@link MultiTypeState} overrides this method and provides the proper test. All the other
      * type states have only 0 or 1 types.
      */
-    public boolean closeToAllInstantiated(@SuppressWarnings("unused") StaticAnalysisEngine analysis) {
+    public boolean closeToAllInstantiated(@SuppressWarnings("unused") BigBang bb) {
         return false;
     }
 
@@ -267,12 +267,12 @@ public abstract class TypeState {
     @Override
     public abstract boolean equals(Object o);
 
-    public int getId(BigBang bb) {
+    public int getId(PointsToAnalysis bb) {
         assert bb.reportAnalysisStatistics() : "TypeState id should only be used for statistics.";
         return id;
     }
 
-    public void setId(BigBang bb, int id) {
+    public void setId(PointsToAnalysis bb, int id) {
         assert bb.reportAnalysisStatistics() : "TypeState id should only be used for statistics.";
         this.id = id;
     }
@@ -288,12 +288,12 @@ public abstract class TypeState {
     }
 
     /** Wraps an analysis object into a non-null type state. */
-    public static TypeState forNonNullObject(BigBang bb, AnalysisObject object) {
+    public static TypeState forNonNullObject(PointsToAnalysis bb, AnalysisObject object) {
         return new SingleTypeState(bb, false, bb.analysisPolicy().makeProperties(bb, object), object);
     }
 
     /** Wraps the analysis object corresponding to a JavaConstant into a non-null type state. */
-    public static TypeState forConstant(BigBang bb, JavaConstant constant, AnalysisType exactType) {
+    public static TypeState forConstant(PointsToAnalysis bb, JavaConstant constant, AnalysisType exactType) {
         assert !constant.isNull();
         assert exactType.isArray() || (exactType.isInstanceClass() && !Modifier.isAbstract(exactType.getModifiers())) : exactType;
 
@@ -302,7 +302,7 @@ public abstract class TypeState {
     }
 
     /** Wraps the analysis object corresponding to an allocation site into a non-null type state. */
-    public static TypeState forAllocation(BigBang bb, BytecodeLocation allocationLabel, AnalysisType exactType) {
+    public static TypeState forAllocation(PointsToAnalysis bb, BytecodeLocation allocationLabel, AnalysisType exactType) {
         return forAllocation(bb, allocationLabel, exactType, bb.contextPolicy().emptyContext());
     }
 
@@ -310,7 +310,7 @@ public abstract class TypeState {
      * Wraps the analysis object corresponding to an allocation site for a given context into a
      * non-null type state.
      */
-    public static TypeState forAllocation(BigBang bb, BytecodeLocation allocationSite, AnalysisType objectType, AnalysisContext allocationContext) {
+    public static TypeState forAllocation(PointsToAnalysis bb, BytecodeLocation allocationSite, AnalysisType objectType, AnalysisContext allocationContext) {
         assert objectType.isArray() || (objectType.isInstanceClass() && !Modifier.isAbstract(objectType.getModifiers())) : objectType;
 
         AnalysisObject allocationObject = bb.analysisPolicy().createHeapObject(bb, objectType, allocationSite, allocationContext);
@@ -321,20 +321,20 @@ public abstract class TypeState {
      * Wraps the analysis object corresponding to a clone site for a given context into a non-null
      * type state.
      */
-    public static TypeState forClone(BigBang bb, BytecodeLocation cloneSite, AnalysisType type, AnalysisContext allocationContext) {
+    public static TypeState forClone(PointsToAnalysis bb, BytecodeLocation cloneSite, AnalysisType type, AnalysisContext allocationContext) {
         return forAllocation(bb, cloneSite, type, allocationContext);
     }
 
-    public static TypeState forExactType(BigBang bb, AnalysisType exactType, boolean canBeNull) {
+    public static TypeState forExactType(PointsToAnalysis bb, AnalysisType exactType, boolean canBeNull) {
         return forExactType(bb, exactType.getContextInsensitiveAnalysisObject(), canBeNull);
     }
 
-    public static TypeState forExactType(BigBang bb, AnalysisObject object, boolean canBeNull) {
+    public static TypeState forExactType(PointsToAnalysis bb, AnalysisObject object, boolean canBeNull) {
         assert object.type().isArray() || (object.type().isInstanceClass() && !Modifier.isAbstract(object.type().getModifiers())) : object.type();
         return new SingleTypeState(bb, canBeNull, bb.analysisPolicy().makeProperties(bb, object), object);
     }
 
-    public static TypeState forExactTypes(BigBang bb, BitSet exactTypes, boolean canBeNull) {
+    public static TypeState forExactTypes(PointsToAnalysis bb, BitSet exactTypes, boolean canBeNull) {
         int numTypes = exactTypes.cardinality();
         if (numTypes == 0) {
             return forEmpty().forCanBeNull(bb, canBeNull);
@@ -363,7 +363,7 @@ public abstract class TypeState {
      * Simplifies a type state by replacing all context sensitive objects with context insensitive
      * objects.
      */
-    public static TypeState forContextInsensitiveTypeState(BigBang bb, TypeState state) {
+    public static TypeState forContextInsensitiveTypeState(PointsToAnalysis bb, TypeState state) {
         if (!PointstoOptions.AllocationSiteSensitiveHeap.getValue(bb.getOptions()) ||
                         state.isEmpty() || state.isNull()) {
             /* The type state is already context insensitive. */
@@ -393,13 +393,13 @@ public abstract class TypeState {
         }
     }
 
-    public final TypeState forNonNull(BigBang bb) {
+    public final TypeState forNonNull(PointsToAnalysis bb) {
         return forCanBeNull(bb, false);
     }
 
-    protected abstract TypeState forCanBeNull(BigBang bb, boolean stateCanBeNull);
+    protected abstract TypeState forCanBeNull(PointsToAnalysis bb, boolean stateCanBeNull);
 
-    public static TypeState forUnion(BigBang bb, TypeState s1, TypeState s2) {
+    public static TypeState forUnion(PointsToAnalysis bb, TypeState s1, TypeState s2) {
         if (s1.isEmpty()) {
             return s2;
         } else if (s1.isNull()) {
@@ -424,7 +424,7 @@ public abstract class TypeState {
         }
     }
 
-    public static TypeState forIntersection(BigBang bb, TypeState s1, TypeState s2) {
+    public static TypeState forIntersection(PointsToAnalysis bb, TypeState s1, TypeState s2) {
         if (s1.isEmpty()) {
             return s1;
         } else if (s1.isNull()) {
@@ -445,7 +445,7 @@ public abstract class TypeState {
         }
     }
 
-    public static TypeState forSubtraction(BigBang bb, TypeState s1, TypeState s2) {
+    public static TypeState forSubtraction(PointsToAnalysis bb, TypeState s1, TypeState s2) {
         if (s1.isEmpty()) {
             return s1;
         } else if (s1.isNull()) {
@@ -468,7 +468,7 @@ public abstract class TypeState {
 
     /* Implementation of union. */
 
-    private static TypeState doUnion(BigBang bb, SingleTypeState s1, SingleTypeState s2) {
+    private static TypeState doUnion(PointsToAnalysis bb, SingleTypeState s1, SingleTypeState s2) {
         if (s1.equals(s2)) {
             return s1;
         }
@@ -518,7 +518,7 @@ public abstract class TypeState {
         }
     }
 
-    private static TypeState doUnion(BigBang bb, MultiTypeState s1, SingleTypeState s2) {
+    private static TypeState doUnion(PointsToAnalysis bb, MultiTypeState s1, SingleTypeState s2) {
         boolean resultCanBeNull = s1.canBeNull() || s2.canBeNull();
 
         AnalysisObject[] so1 = s1.objects;
@@ -610,7 +610,7 @@ public abstract class TypeState {
         }
     }
 
-    private static TypeState doUnion(BigBang bb, MultiTypeState s1, MultiTypeState s2) {
+    private static TypeState doUnion(PointsToAnalysis bb, MultiTypeState s1, MultiTypeState s2) {
         assert s1.objectsCount() >= s2.objectsCount() : "Union is commutative, must call it with s1 being the bigger state";
         boolean resultCanBeNull = s1.canBeNull() || s2.canBeNull();
 
@@ -625,7 +625,7 @@ public abstract class TypeState {
         return doUnion0(bb, s1, s2, resultCanBeNull);
     }
 
-    private static TypeState doUnion0(BigBang bb, MultiTypeState s1, MultiTypeState s2, boolean resultCanBeNull) {
+    private static TypeState doUnion0(PointsToAnalysis bb, MultiTypeState s1, MultiTypeState s2, boolean resultCanBeNull) {
 
         /* Speculate that s1 and s2 are distinct sets. */
 
@@ -661,7 +661,7 @@ public abstract class TypeState {
         return doUnion1(bb, s1, s2, resultCanBeNull);
     }
 
-    private static TypeState doUnion1(BigBang bb, MultiTypeState s1, MultiTypeState s2, boolean resultCanBeNull) {
+    private static TypeState doUnion1(PointsToAnalysis bb, MultiTypeState s1, MultiTypeState s2, boolean resultCanBeNull) {
         if (PointstoOptions.AllocationSiteSensitiveHeap.getValue(bb.getOptions())) {
             return allocationSensitiveSpeculativeUnion1(bb, s1, s2, resultCanBeNull);
         } else {
@@ -672,7 +672,7 @@ public abstract class TypeState {
     /**
      * Optimization that gives 1.5-3x in performance for the (typeflow) phase.
      */
-    private static TypeState allocationInsensitiveSpeculativeUnion1(BigBang bb, MultiTypeState s1, MultiTypeState s2, boolean resultCanBeNull) {
+    private static TypeState allocationInsensitiveSpeculativeUnion1(PointsToAnalysis bb, MultiTypeState s1, MultiTypeState s2, boolean resultCanBeNull) {
         if (s1.typesBitSet.length() >= s2.typesBitSet.length()) {
             long[] bits1 = TypeStateUtils.extractBitSetField(s1.typesBitSet);
             long[] bits2 = TypeStateUtils.extractBitSetField(s2.typesBitSet);
@@ -694,7 +694,7 @@ public abstract class TypeState {
         return doUnion2(bb, s1, s2, resultCanBeNull, 0, 0);
     }
 
-    private static TypeState allocationSensitiveSpeculativeUnion1(BigBang bb, MultiTypeState s1, MultiTypeState s2, boolean resultCanBeNull) {
+    private static TypeState allocationSensitiveSpeculativeUnion1(PointsToAnalysis bb, MultiTypeState s1, MultiTypeState s2, boolean resultCanBeNull) {
         int idx1 = 0;
         int idx2 = 0;
         AnalysisPolicy analysisPolicy = bb.analysisPolicy();
@@ -731,7 +731,7 @@ public abstract class TypeState {
     private static ThreadLocal<UnsafeArrayListClosable<AnalysisObject>> doUnion2TL = new ThreadLocal<>();
     private static ThreadLocal<UnsafeArrayListClosable<AnalysisObject>> doUnion2ObjectsTL = new ThreadLocal<>();
 
-    private static TypeState doUnion2(BigBang bb, MultiTypeState s1, MultiTypeState s2, boolean resultCanBeNull, int startId1, int startId2) {
+    private static TypeState doUnion2(PointsToAnalysis bb, MultiTypeState s1, MultiTypeState s2, boolean resultCanBeNull, int startId1, int startId2) {
         try (UnsafeArrayListClosable<AnalysisObject> resultObjectsClosable = getTLArrayList(doUnion2TL, s1.objects.length + s2.objects.length)) {
             UnsafeArrayList<AnalysisObject> resultObjects = resultObjectsClosable.list;
             /* Add the beginning of the s1 list that we already walked above. */
@@ -869,7 +869,7 @@ public abstract class TypeState {
      * be selected are always specified in s2 through their context insensitive objects, thus s2
      * must only contain context insensitive objects.
      */
-    private static TypeState doIntersection(BigBang bb, SingleTypeState s1, SingleTypeState s2) {
+    private static TypeState doIntersection(PointsToAnalysis bb, SingleTypeState s1, SingleTypeState s2) {
         assert s2.objects.length == 1 && s2.objects[0].isContextInsensitiveObject() : "Current implementation limitation.";
 
         boolean resultCanBeNull = s1.canBeNull() && s2.canBeNull();
@@ -886,7 +886,7 @@ public abstract class TypeState {
         return result;
     }
 
-    private static TypeState doIntersection(BigBang bb, SingleTypeState s1, MultiTypeState s2) {
+    private static TypeState doIntersection(PointsToAnalysis bb, SingleTypeState s1, MultiTypeState s2) {
         assert !PointstoOptions.ExtendedAsserts.getValue(bb.getOptions()) || TypeStateUtils.isContextInsensitiveTypeState(s2) : "Current implementation limitation.";
 
         boolean resultCanBeNull = s1.canBeNull() && s2.canBeNull();
@@ -901,7 +901,7 @@ public abstract class TypeState {
         }
     }
 
-    private static TypeState doIntersection(BigBang bb, MultiTypeState s1, SingleTypeState s2) {
+    private static TypeState doIntersection(PointsToAnalysis bb, MultiTypeState s1, SingleTypeState s2) {
         /* See comment above for the limitation explanation. */
         assert s2.objects.length == 1 && s2.objects[0].isContextInsensitiveObject() : "Current implementation limitation.";
 
@@ -917,7 +917,7 @@ public abstract class TypeState {
         }
     }
 
-    private static TypeState doIntersection(BigBang bb, MultiTypeState s1, MultiTypeState s2) {
+    private static TypeState doIntersection(PointsToAnalysis bb, MultiTypeState s1, MultiTypeState s2) {
         assert !PointstoOptions.ExtendedAsserts.getValue(bb.getOptions()) || TypeStateUtils.isContextInsensitiveTypeState(s2) : "Current implementation limitation.";
 
         boolean resultCanBeNull = s1.canBeNull() && s2.canBeNull();
@@ -933,7 +933,7 @@ public abstract class TypeState {
         return doIntersection0(bb, s1, s2, resultCanBeNull);
     }
 
-    private static TypeState doIntersection0(BigBang bb, MultiTypeState s1, MultiTypeState s2, boolean resultCanBeNull) {
+    private static TypeState doIntersection0(PointsToAnalysis bb, MultiTypeState s1, MultiTypeState s2, boolean resultCanBeNull) {
         /* Speculate that s1 and s2 have either the same types, or no types in common. */
 
         if (s1.typesBitSet.equals(s2.typesBitSet)) {
@@ -949,7 +949,7 @@ public abstract class TypeState {
         return doIntersection1(bb, s1, s2, resultCanBeNull);
     }
 
-    private static TypeState doIntersection1(BigBang bb, MultiTypeState s1, MultiTypeState s2, boolean resultCanBeNull) {
+    private static TypeState doIntersection1(PointsToAnalysis bb, MultiTypeState s1, MultiTypeState s2, boolean resultCanBeNull) {
         /*
          * Speculate that s2 contains all types of s1, i.e., the filter is broader than s1, thus the
          * result is s1.
@@ -1071,7 +1071,7 @@ public abstract class TypeState {
 
     }
 
-    private static TypeState doIntersection2(BigBang bb, MultiTypeState s1, MultiTypeState s2, boolean resultCanBeNull, int idx1Param, int idx2Param) {
+    private static TypeState doIntersection2(PointsToAnalysis bb, MultiTypeState s1, MultiTypeState s2, boolean resultCanBeNull, int idx1Param, int idx2Param) {
 
         try (UnsafeArrayListClosable<AnalysisObject> tlArrayClosable = getTLArrayList(intersectionArrayListTL, 256)) {
             UnsafeArrayList<AnalysisObject> resultObjects = tlArrayClosable.list;
@@ -1180,7 +1180,7 @@ public abstract class TypeState {
      * objects need to be eliminated are always specified in s2 through their context insensitive
      * objects, thus s2 must only contain context insensitive objects.
      */
-    private static TypeState doSubtraction(BigBang bb, SingleTypeState s1, SingleTypeState s2) {
+    private static TypeState doSubtraction(PointsToAnalysis bb, SingleTypeState s1, SingleTypeState s2) {
         boolean resultCanBeNull = s1.canBeNull() && !s2.canBeNull();
         if (s1.exactType().equals(s2.exactType())) {
             /* See comment above for the limitation explanation. */
@@ -1191,7 +1191,7 @@ public abstract class TypeState {
         }
     }
 
-    private static TypeState doSubtraction(BigBang bb, SingleTypeState s1, MultiTypeState s2) {
+    private static TypeState doSubtraction(PointsToAnalysis bb, SingleTypeState s1, MultiTypeState s2) {
         boolean resultCanBeNull = s1.canBeNull() && !s2.canBeNull();
         if (s2.containsType(s1.exactType())) {
             AnalysisObject[] array = s2.objectsArray(s1.exactType());
@@ -1203,7 +1203,7 @@ public abstract class TypeState {
         }
     }
 
-    private static TypeState doSubtraction(BigBang bb, MultiTypeState s1, SingleTypeState s2) {
+    private static TypeState doSubtraction(PointsToAnalysis bb, MultiTypeState s1, SingleTypeState s2) {
         boolean resultCanBeNull = s1.canBeNull() && !s2.canBeNull();
         if (s1.containsType(s2.exactType())) {
             /* s2 is contained in s1, so remove all objects of the same type from s1. */
@@ -1235,7 +1235,7 @@ public abstract class TypeState {
         }
     }
 
-    private static TypeState doSubtraction(BigBang bb, MultiTypeState s1, MultiTypeState s2) {
+    private static TypeState doSubtraction(PointsToAnalysis bb, MultiTypeState s1, MultiTypeState s2) {
         boolean resultCanBeNull = s1.canBeNull() && !s2.canBeNull();
         /*
          * No need for a deep equality check (which would need to iterate the arrays), since the
@@ -1248,7 +1248,7 @@ public abstract class TypeState {
         return doSubtraction0(bb, s1, s2, resultCanBeNull);
     }
 
-    private static TypeState doSubtraction0(BigBang bb, MultiTypeState s1, MultiTypeState s2, boolean resultCanBeNull) {
+    private static TypeState doSubtraction0(PointsToAnalysis bb, MultiTypeState s1, MultiTypeState s2, boolean resultCanBeNull) {
         /* Speculate that s1 and s2 have either the same types, or no types in common. */
 
         if (s1.typesBitSet.equals(s2.typesBitSet)) {
@@ -1264,7 +1264,7 @@ public abstract class TypeState {
         return doSubtraction1(bb, s1, s2, resultCanBeNull);
     }
 
-    private static TypeState doSubtraction1(BigBang bb, MultiTypeState s1, MultiTypeState s2, boolean resultCanBeNull) {
+    private static TypeState doSubtraction1(PointsToAnalysis bb, MultiTypeState s1, MultiTypeState s2, boolean resultCanBeNull) {
         /*
          * Speculate that s1 and s2 have no overlap, i.e., they don't have any objects in common. In
          * that case, the result is just s1.
@@ -1300,7 +1300,7 @@ public abstract class TypeState {
         return doSubtraction2(bb, s1, s2, resultCanBeNull, idx1, idx2);
     }
 
-    private static TypeState doSubtraction2(BigBang bb, MultiTypeState s1, MultiTypeState s2, boolean resultCanBeNull, int idx1Param, int idx2Param) {
+    private static TypeState doSubtraction2(PointsToAnalysis bb, MultiTypeState s1, MultiTypeState s2, boolean resultCanBeNull, int idx1Param, int idx2Param) {
         try (UnsafeArrayListClosable<AnalysisObject> tlArrayClosable = getTLArrayList(intersectionArrayListTL, 256)) {
             UnsafeArrayList<AnalysisObject> resultObjects = tlArrayClosable.list;
 
@@ -1366,7 +1366,7 @@ final class EmptyTypeState extends TypeState {
     }
 
     @Override
-    public void noteMerge(BigBang bb) {
+    public void noteMerge(PointsToAnalysis bb) {
     }
 
     @Override
@@ -1413,12 +1413,12 @@ final class EmptyTypeState extends TypeState {
     }
 
     @Override
-    public TypeState exactTypeState(BigBang bb, AnalysisType exactType) {
+    public TypeState exactTypeState(PointsToAnalysis bb, AnalysisType exactType) {
         return this;
     }
 
     @Override
-    protected TypeState forCanBeNull(BigBang bb, boolean stateCanBeNull) {
+    protected TypeState forCanBeNull(PointsToAnalysis bb, boolean stateCanBeNull) {
         return stateCanBeNull ? NullTypeState.SINGLETON : EmptyTypeState.SINGLETON;
     }
 
@@ -1457,7 +1457,7 @@ final class NullTypeState extends TypeState {
     }
 
     @Override
-    public void noteMerge(BigBang bb) {
+    public void noteMerge(PointsToAnalysis bb) {
     }
 
     @Override
@@ -1504,12 +1504,12 @@ final class NullTypeState extends TypeState {
     }
 
     @Override
-    public TypeState exactTypeState(BigBang bb, AnalysisType exactType) {
+    public TypeState exactTypeState(PointsToAnalysis bb, AnalysisType exactType) {
         return this;
     }
 
     @Override
-    public TypeState forCanBeNull(BigBang bb, boolean stateCanBeNull) {
+    public TypeState forCanBeNull(PointsToAnalysis bb, boolean stateCanBeNull) {
         return stateCanBeNull ? NullTypeState.SINGLETON : EmptyTypeState.SINGLETON;
     }
 

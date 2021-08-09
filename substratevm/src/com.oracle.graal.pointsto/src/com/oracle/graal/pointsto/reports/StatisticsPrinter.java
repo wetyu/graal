@@ -29,8 +29,8 @@ import java.io.PrintWriter;
 import java.util.Map;
 import java.util.function.Consumer;
 
+import com.oracle.graal.pointsto.PointsToAnalysis;
 import com.oracle.graal.pointsto.BigBang;
-import com.oracle.graal.pointsto.StaticAnalysisEngine;
 import com.oracle.graal.pointsto.flow.InstanceOfTypeFlow;
 import com.oracle.graal.pointsto.flow.MethodFlowsGraph;
 import com.oracle.graal.pointsto.flow.MethodTypeFlow;
@@ -42,31 +42,31 @@ import com.oracle.graal.pointsto.typestate.TypeState;
 
 public final class StatisticsPrinter {
 
-    public static void print(StaticAnalysisEngine analysis, String reportsPath, String reportName) {
-        StatisticsPrinter printer = new StatisticsPrinter(analysis);
+    public static void print(BigBang bb, String reportsPath, String reportName) {
+        StatisticsPrinter printer = new StatisticsPrinter(bb);
         Consumer<PrintWriter> consumer = printer::printStats;
         String description = "analysis results stats";
-        if (AnalysisReportsOptions.AnalysisStatisticsFile.hasBeenSet(analysis.getOptions())) {
-            final File file = new File(AnalysisReportsOptions.AnalysisStatisticsFile.getValue(analysis.getOptions())).getAbsoluteFile();
+        if (AnalysisReportsOptions.AnalysisStatisticsFile.hasBeenSet(bb.getOptions())) {
+            final File file = new File(AnalysisReportsOptions.AnalysisStatisticsFile.getValue(bb.getOptions())).getAbsoluteFile();
             ReportUtils.report(description, file.toPath(), consumer);
         } else {
             ReportUtils.report(description, reportsPath, "analysis_stats_" + reportName, "json", consumer);
         }
     }
 
-    private final StaticAnalysisEngine analysis;
+    private final BigBang bb;
 
-    public StatisticsPrinter(StaticAnalysisEngine analysis) {
-        this.analysis = analysis;
+    public StatisticsPrinter(BigBang bb) {
+        this.bb = bb;
     }
 
     /** Print analysis statistics as JSON formatted String. */
     private void printStats(PrintWriter out) {
 
-        int[] reachableTypes = getNumReachableTypes(analysis);
-        int[] reachableMethods = getNumReachableMethods(analysis);
-        int[] reachableFields = getNumReachableFields(analysis);
-        long[] typeChecksStats = getTypeCheckStats(analysis);
+        int[] reachableTypes = getNumReachableTypes(bb);
+        int[] reachableMethods = getNumReachableMethods(bb);
+        int[] reachableFields = getNumReachableFields(bb);
+        long[] typeChecksStats = getTypeCheckStats(bb);
 
         beginObject(out);
 
@@ -81,7 +81,7 @@ public final class StatisticsPrinter {
         print(out, "app_type_checks", typeChecksStats[2]);
         print(out, "app_removable_type_checks", typeChecksStats[3]);
 
-        analysis.printTimerStatistics(out);
+        bb.printTimerStatistics(out);
 
         endObject(out);
     }
@@ -108,10 +108,10 @@ public final class StatisticsPrinter {
         out.format("%s\"%s\": %d%n", INDENT, key, value);
     }
 
-    private static int[] getNumReachableTypes(StaticAnalysisEngine analysis) {
+    private static int[] getNumReachableTypes(BigBang bb) {
         int reachable = 0;
         int appReachable = 0;
-        for (AnalysisType type : analysis.getUniverse().getTypes()) {
+        for (AnalysisType type : bb.getUniverse().getTypes()) {
             if (type.isInstantiated()) {
                 reachable++;
                 if (!isRuntimeLibraryType(type)) {
@@ -122,10 +122,10 @@ public final class StatisticsPrinter {
         return new int[]{reachable, appReachable};
     }
 
-    private static int[] getNumReachableMethods(StaticAnalysisEngine analysis) {
+    private static int[] getNumReachableMethods(BigBang bb) {
         int reachable = 0;
         int appReachable = 0;
-        for (AnalysisMethod method : analysis.getUniverse().getMethods()) {
+        for (AnalysisMethod method : bb.getUniverse().getMethods()) {
             if (method.isReachable()) {
                 reachable++;
                 if (!isRuntimeLibraryType(method.getDeclaringClass())) {
@@ -136,10 +136,10 @@ public final class StatisticsPrinter {
         return new int[]{reachable, appReachable};
     }
 
-    private static int[] getNumReachableFields(StaticAnalysisEngine analysis) {
+    private static int[] getNumReachableFields(BigBang bb) {
         int reachable = 0;
         int appReachable = 0;
-        for (AnalysisField field : analysis.getUniverse().getFields()) {
+        for (AnalysisField field : bb.getUniverse().getFields()) {
             if (field.isAccessed()) {
                 reachable++;
                 if (!isRuntimeLibraryType(field.getDeclaringClass())) {
@@ -150,18 +150,18 @@ public final class StatisticsPrinter {
         return new int[]{reachable, appReachable};
     }
 
-    private static long[] getTypeCheckStats(StaticAnalysisEngine analysis) {
-        if (!(analysis instanceof BigBang)) {
+    private static long[] getTypeCheckStats(BigBang bb) {
+        if (!(bb instanceof PointsToAnalysis)) {
             /*- Type check stats are only available if points-to analysis is on. */
             return new long[4];
         }
-        BigBang bb = (BigBang) analysis;
+        PointsToAnalysis pointsToAnalysis = (PointsToAnalysis) bb;
         long totalFilters = 0;
         long totalRemovableFilters = 0;
         long appTotalFilters = 0;
         long appTotalRemovableFilters = 0;
 
-        for (AnalysisMethod method : analysis.getUniverse().getMethods()) {
+        for (AnalysisMethod method : pointsToAnalysis.getUniverse().getMethods()) {
 
             boolean runtimeMethod = isRuntimeLibraryType(method.getDeclaringClass());
             MethodTypeFlow methodFlow = method.getTypeFlow();
@@ -172,8 +172,8 @@ public final class StatisticsPrinter {
                     totalFilters++;
                     InstanceOfTypeFlow originalInstanceOf = entry.getValue();
 
-                    boolean isSaturated = methodFlow.isSaturated(bb, originalInstanceOf);
-                    TypeState instanceOfTypeState = methodFlow.foldTypeFlow(bb, originalInstanceOf);
+                    boolean isSaturated = methodFlow.isSaturated(pointsToAnalysis, originalInstanceOf);
+                    TypeState instanceOfTypeState = methodFlow.foldTypeFlow(pointsToAnalysis, originalInstanceOf);
                     if (!isSaturated && instanceOfTypeState.typesCount() < 2) {
                         totalRemovableFilters++;
                     }

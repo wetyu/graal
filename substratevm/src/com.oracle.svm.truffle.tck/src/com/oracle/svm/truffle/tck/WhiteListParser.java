@@ -35,7 +35,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 
-import com.oracle.svm.hosted.analysis.NativeImageStaticAnalysisEngine;
+import com.oracle.svm.hosted.analysis.Inflation;
 import org.graalvm.nativeimage.Platforms;
 
 import com.oracle.graal.pointsto.meta.AnalysisMethod;
@@ -56,12 +56,12 @@ final class WhiteListParser extends ConfigurationParser {
     private static final String CONSTRUCTOR_NAME = "<init>";
 
     private final ImageClassLoader imageClassLoader;
-    private final NativeImageStaticAnalysisEngine analysis;
+    private final Inflation bb;
     private Set<AnalysisMethod> whiteList;
 
-    WhiteListParser(ImageClassLoader imageClassLoader, NativeImageStaticAnalysisEngine analysis) {
+    WhiteListParser(ImageClassLoader imageClassLoader, Inflation bb) {
         this.imageClassLoader = Objects.requireNonNull(imageClassLoader, "ImageClassLoader must be non null");
-        this.analysis = Objects.requireNonNull(analysis, "BigBang must be non null");
+        this.bb = Objects.requireNonNull(bb, "BigBang must be non null");
     }
 
     Set<AnalysisMethod> getLoadedWhiteList() {
@@ -201,11 +201,11 @@ final class WhiteListParser extends ConfigurationParser {
         }
         Class<?> clz = imageClassLoader.findClass(useType).get();
         verifySupportedOnActivePlatform(clz);
-        return analysis.getMetaAccess().lookupJavaType(clz);
+        return bb.getMetaAccess().lookupJavaType(clz);
     }
 
     private void verifySupportedOnActivePlatform(Class<?> clz) throws UnsupportedPlatformException {
-        AnalysisUniverse universe = analysis.getUniverse();
+        AnalysisUniverse universe = bb.getUniverse();
         Package pkg = clz.getPackage();
         if (pkg != null && !universe.platformSupported(pkg)) {
             throw new UnsupportedPlatformException(clz.getPackage());
@@ -221,8 +221,8 @@ final class WhiteListParser extends ConfigurationParser {
 
     private boolean registerMethod(AnalysisType type, String methodName, List<AnalysisType> formalParameters) {
         Predicate<ResolvedJavaMethod> p = (m) -> methodName.equals(m.getName());
-        p = p.and(new SignaturePredicate(type, formalParameters, analysis));
-        Set<AnalysisMethod> methods = PermissionsFeature.findMethods(analysis, type, p);
+        p = p.and(new SignaturePredicate(type, formalParameters, bb));
+        Set<AnalysisMethod> methods = PermissionsFeature.findMethods(bb, type, p);
         for (AnalysisMethod method : methods) {
             whiteList.add(method);
         }
@@ -230,7 +230,7 @@ final class WhiteListParser extends ConfigurationParser {
     }
 
     private boolean registerAllMethodsWithName(AnalysisType type, String name) {
-        Set<AnalysisMethod> methods = PermissionsFeature.findMethods(analysis, type, (m) -> name.equals(m.getName()));
+        Set<AnalysisMethod> methods = PermissionsFeature.findMethods(bb, type, (m) -> name.equals(m.getName()));
         for (AnalysisMethod method : methods) {
             whiteList.add(method);
         }
@@ -238,8 +238,8 @@ final class WhiteListParser extends ConfigurationParser {
     }
 
     private boolean registerConstructor(AnalysisType type, List<AnalysisType> formalParameters) {
-        Predicate<ResolvedJavaMethod> p = new SignaturePredicate(type, formalParameters, analysis);
-        Set<AnalysisMethod> methods = PermissionsFeature.findConstructors(analysis, type, p);
+        Predicate<ResolvedJavaMethod> p = new SignaturePredicate(type, formalParameters, bb);
+        Set<AnalysisMethod> methods = PermissionsFeature.findConstructors(bb, type, p);
         for (AnalysisMethod method : methods) {
             whiteList.add(method);
         }
@@ -285,12 +285,12 @@ final class WhiteListParser extends ConfigurationParser {
 
         private final ResolvedJavaType owner;
         private final List<? extends ResolvedJavaType> params;
-        private final NativeImageStaticAnalysisEngine analysis;
+        private final Inflation bb;
 
-        SignaturePredicate(AnalysisType owner, List<? extends ResolvedJavaType> params, NativeImageStaticAnalysisEngine analysis) {
+        SignaturePredicate(AnalysisType owner, List<? extends ResolvedJavaType> params, Inflation bb) {
             this.owner = Objects.requireNonNull(owner, "Owner must be non null.").getWrappedWithoutResolve();
             this.params = Objects.requireNonNull(params, "Params must be non null.");
-            this.analysis = Objects.requireNonNull(analysis, "Analysis must be non null.");
+            this.bb = Objects.requireNonNull(bb, "Analysis must be non null.");
         }
 
         @Override
@@ -300,7 +300,7 @@ final class WhiteListParser extends ConfigurationParser {
                 return false;
             }
             for (int i = 0; i < signaure.getParameterCount(false); i++) {
-                ResolvedJavaType st = analysis.getUniverse().lookup(signaure.getParameterType(i, owner));
+                ResolvedJavaType st = bb.getUniverse().lookup(signaure.getParameterType(i, owner));
                 ResolvedJavaType pt = params.get(i);
                 if (!pt.equals(st)) {
                     return false;

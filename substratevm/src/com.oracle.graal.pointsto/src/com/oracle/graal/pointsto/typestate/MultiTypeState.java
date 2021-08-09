@@ -28,10 +28,10 @@ import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Iterator;
 
-import com.oracle.graal.pointsto.StaticAnalysisEngine;
+import com.oracle.graal.pointsto.BigBang;
 import org.graalvm.compiler.options.OptionValues;
 
-import com.oracle.graal.pointsto.BigBang;
+import com.oracle.graal.pointsto.PointsToAnalysis;
 import com.oracle.graal.pointsto.api.PointstoOptions;
 import com.oracle.graal.pointsto.flow.context.object.AnalysisObject;
 import com.oracle.graal.pointsto.meta.AnalysisType;
@@ -39,7 +39,7 @@ import com.oracle.graal.pointsto.meta.AnalysisUniverse;
 
 public class MultiTypeState extends TypeState {
 
-    protected final BigBang bigbang;
+    protected final PointsToAnalysis bigbang;
     /** The objects of this type state. */
     protected final AnalysisObject[] objects;
     /** See {@link #getObjectTypeIds()}. */
@@ -58,7 +58,7 @@ public class MultiTypeState extends TypeState {
     protected boolean merged;
 
     /** Creates a new type state using the provided types bit set and objects. */
-    MultiTypeState(BigBang bb, boolean canBeNull, int properties, BitSet typesBitSet, AnalysisObject... objects) {
+    MultiTypeState(PointsToAnalysis bb, boolean canBeNull, int properties, BitSet typesBitSet, AnalysisObject... objects) {
         super(properties);
         this.bigbang = bb;
         this.objects = objects;
@@ -88,7 +88,7 @@ public class MultiTypeState extends TypeState {
     }
 
     /** Create a type state with the same content and a reversed canBeNull value. */
-    private MultiTypeState(BigBang bb, boolean canBeNull, MultiTypeState other) {
+    private MultiTypeState(PointsToAnalysis bb, boolean canBeNull, MultiTypeState other) {
         super(other.properties);
         this.bigbang = bb;
         this.objects = other.objects;
@@ -206,7 +206,7 @@ public class MultiTypeState extends TypeState {
     }
 
     @Override
-    public TypeState exactTypeState(BigBang bb, AnalysisType exactType) {
+    public TypeState exactTypeState(PointsToAnalysis bb, AnalysisType exactType) {
         if (containsType(exactType)) {
             AnalysisObject[] resultObjects = objectsArray(exactType);
             return new SingleTypeState(bb, canBeNull, bb.analysisPolicy().makeProperties(bb, resultObjects), resultObjects);
@@ -216,7 +216,7 @@ public class MultiTypeState extends TypeState {
     }
 
     @Override
-    public TypeState forCanBeNull(BigBang bb, boolean resultCanBeNull) {
+    public TypeState forCanBeNull(PointsToAnalysis bb, boolean resultCanBeNull) {
         if (resultCanBeNull == this.canBeNull()) {
             return this;
         } else {
@@ -320,7 +320,7 @@ public class MultiTypeState extends TypeState {
 
     /** Note that the objects of this type state have been merged. */
     @Override
-    public void noteMerge(BigBang bb) {
+    public void noteMerge(PointsToAnalysis bb) {
         assert bb.analysisPolicy().isMergingEnabled();
 
         if (!merged) {
@@ -332,13 +332,13 @@ public class MultiTypeState extends TypeState {
     }
 
     @Override
-    public boolean closeToAllInstantiated(StaticAnalysisEngine analysis) {
-        if (!(analysis instanceof BigBang)) {
+    public boolean closeToAllInstantiated(BigBang bb) {
+        if (!(bb instanceof PointsToAnalysis)) {
             return false;
         }
-        BigBang bb = (BigBang) analysis;
+        PointsToAnalysis pointsToAnalysis = (PointsToAnalysis) bb;
         if (typesCount > 200) {
-            MultiTypeState allInstState = (MultiTypeState) bb.getAllInstantiatedTypeFlow().getState();
+            MultiTypeState allInstState = (MultiTypeState) pointsToAnalysis.getAllInstantiatedTypeFlow().getState();
             return typesCount * 100L / allInstState.typesCount > 75;
         }
 

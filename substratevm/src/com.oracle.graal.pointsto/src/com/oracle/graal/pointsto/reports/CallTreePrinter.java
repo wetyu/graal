@@ -43,7 +43,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.oracle.graal.pointsto.StaticAnalysisEngine;
+import com.oracle.graal.pointsto.BigBang;
 import com.oracle.graal.pointsto.meta.AnalysisMethod;
 
 import jdk.vm.ci.code.BytecodePosition;
@@ -51,8 +51,8 @@ import jdk.vm.ci.meta.ResolvedJavaMethod;
 
 public final class CallTreePrinter {
 
-    public static void print(StaticAnalysisEngine analysis, String reportsPath, String reportName) {
-        CallTreePrinter printer = new CallTreePrinter(analysis);
+    public static void print(BigBang bb, String reportsPath, String reportName) {
+        CallTreePrinter printer = new CallTreePrinter(bb);
         printer.buildCallTree();
 
         ReportUtils.report("call tree", reportsPath, "call_tree_" + reportName, "txt",
@@ -137,11 +137,11 @@ public final class CallTreePrinter {
         }
     }
 
-    private final StaticAnalysisEngine analysis;
+    private final BigBang bb;
     private final Map<AnalysisMethod, MethodNode> methodToNode;
 
-    public CallTreePrinter(StaticAnalysisEngine analysis) {
-        this.analysis = analysis;
+    public CallTreePrinter(BigBang bb) {
+        this.bb = bb;
         /* Use linked hash map for predictable iteration order. */
         this.methodToNode = new LinkedHashMap<>();
     }
@@ -149,7 +149,7 @@ public final class CallTreePrinter {
     public void buildCallTree() {
 
         /* Add all the roots to the tree. */
-        analysis.getUniverse().getMethods().stream()
+        bb.getUniverse().getMethods().stream()
                         .filter(m -> m.isRootMethod() && !methodToNode.containsKey(m))
                         .sorted(methodComparator)
                         .forEach(method -> methodToNode.put(method, new MethodNode(method, true)));

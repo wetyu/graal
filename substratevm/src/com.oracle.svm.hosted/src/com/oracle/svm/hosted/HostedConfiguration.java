@@ -31,9 +31,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ForkJoinPool;
 
-import com.oracle.graal.pointsto.StaticAnalysisEngine;
+import com.oracle.graal.pointsto.BigBang;
 import com.oracle.svm.core.util.VMError;
-import com.oracle.svm.hosted.analysis.NativeImageStaticAnalysisEngine;
+import com.oracle.svm.hosted.analysis.Inflation;
 import org.graalvm.compiler.api.replacements.SnippetReflectionProvider;
 import org.graalvm.compiler.core.common.CompressEncoding;
 import org.graalvm.compiler.debug.DebugContext;
@@ -41,7 +41,7 @@ import org.graalvm.compiler.nodes.StructuredGraph;
 import org.graalvm.compiler.options.OptionValues;
 import org.graalvm.nativeimage.ImageSingletons;
 
-import com.oracle.graal.pointsto.BigBang;
+import com.oracle.graal.pointsto.PointsToAnalysis;
 import com.oracle.graal.pointsto.flow.MethodTypeFlow;
 import com.oracle.graal.pointsto.flow.MethodTypeFlowBuilder;
 import com.oracle.graal.pointsto.meta.AnalysisField;
@@ -142,11 +142,11 @@ public class HostedConfiguration {
         return new CompileQueue(debug, featureHandler, hostedUniverse, runtime, deoptimizeAll, aSnippetReflection, executor);
     }
 
-    public MethodTypeFlowBuilder createMethodTypeFlowBuilder(BigBang bigBang, MethodTypeFlow methodTypeFlow) {
+    public MethodTypeFlowBuilder createMethodTypeFlowBuilder(PointsToAnalysis bigBang, MethodTypeFlow methodTypeFlow) {
         return new SVMMethodTypeFlowBuilder(bigBang, methodTypeFlow);
     }
 
-    public MethodTypeFlowBuilder createMethodTypeFlowBuilder(BigBang bigBang, StructuredGraph graph) {
+    public MethodTypeFlowBuilder createMethodTypeFlowBuilder(PointsToAnalysis bigBang, StructuredGraph graph) {
         return new SVMMethodTypeFlowBuilder(bigBang, graph);
     }
 
@@ -172,40 +172,40 @@ public class HostedConfiguration {
         }
     }
 
-    public AbstractAnalysisResultsBuilder createStaticAnalysisResultsBuilder(NativeImageStaticAnalysisEngine analysis, HostedUniverse universe) {
-        if (analysis instanceof BigBang) {
-            BigBang bb = (BigBang) analysis;
+    public AbstractAnalysisResultsBuilder createStaticAnalysisResultsBuilder(Inflation bb, HostedUniverse universe) {
+        if (bb instanceof PointsToAnalysis) {
+            PointsToAnalysis pointsToAnalysis = (PointsToAnalysis) bb;
             if (SubstrateOptions.parseOnce()) {
-                return new SubstrateStrengthenGraphs(bb, universe);
+                return new SubstrateStrengthenGraphs(pointsToAnalysis, universe);
             } else {
-                return new StaticAnalysisResultsBuilder(bb, universe);
+                return new StaticAnalysisResultsBuilder(pointsToAnalysis, universe);
             }
         } else {
             /*- A custom result builder for Reachability analysis will probably have to be created */
-            throw VMError.shouldNotReachHere("Unsupported analysis type: " + analysis.getClass());
+            throw VMError.shouldNotReachHere("Unsupported analysis type: " + bb.getClass());
         }
     }
 
-    public void collectMonitorFieldInfo(StaticAnalysisEngine analysis, HostedUniverse hUniverse, Set<AnalysisType> immutableTypes) {
+    public void collectMonitorFieldInfo(BigBang bb, HostedUniverse hUniverse, Set<AnalysisType> immutableTypes) {
         /* First set the monitor field for types that always need it. */
-        getForceMonitorSlotTypes(analysis).forEach(type -> setMonitorField(hUniverse, type));
+        getForceMonitorSlotTypes(bb).forEach(type -> setMonitorField(hUniverse, type));
 
         /* Then decide what other types may need it. */
-        processedSynchronizedTypes(analysis, hUniverse, immutableTypes);
+        processedSynchronizedTypes(bb, hUniverse, immutableTypes);
     }
 
-    private static Set<AnalysisType> getForceMonitorSlotTypes(StaticAnalysisEngine analysis) {
+    private static Set<AnalysisType> getForceMonitorSlotTypes(BigBang bb) {
         Set<AnalysisType> forceMonitorTypes = new HashSet<>();
         for (Class<?> forceMonitorType : MultiThreadedMonitorSupport.FORCE_MONITOR_SLOT_TYPES) {
-            Optional<AnalysisType> aType = analysis.getMetaAccess().optionalLookupJavaType(forceMonitorType);
+            Optional<AnalysisType> aType = bb.getMetaAccess().optionalLookupJavaType(forceMonitorType);
             aType.ifPresent(forceMonitorTypes::add);
         }
         return forceMonitorTypes;
     }
 
     /** Process the types that the analysis found as needing synchronization. */
-    protected void processedSynchronizedTypes(StaticAnalysisEngine analysis, HostedUniverse hUniverse, Set<AnalysisType> immutableTypes) {
-        TypeState allSynchronizedTypeState = analysis.getAllSynchronizedTypeState();
+    protected void processedSynchronizedTypes(BigBang bb, HostedUniverse hUniverse, Set<AnalysisType> immutableTypes) {
+        TypeState allSynchronizedTypeState = bb.getAllSynchronizedTypeState();
         for (AnalysisType type : allSynchronizedTypeState.types()) {
             maybeSetMonitorField(hUniverse, immutableTypes, type);
         }

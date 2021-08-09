@@ -40,7 +40,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
-import com.oracle.graal.pointsto.StaticAnalysisEngine;
+import com.oracle.graal.pointsto.BigBang;
 import org.graalvm.compiler.api.replacements.SnippetReflectionProvider;
 import org.graalvm.compiler.core.common.SuppressFBWarnings;
 import org.graalvm.nativeimage.Platform;
@@ -49,7 +49,7 @@ import org.graalvm.util.GuardedAnnotationAccess;
 import org.graalvm.word.WordBase;
 
 import com.oracle.graal.pointsto.AnalysisPolicy;
-import com.oracle.graal.pointsto.BigBang;
+import com.oracle.graal.pointsto.PointsToAnalysis;
 import com.oracle.graal.pointsto.api.HostVM;
 import com.oracle.graal.pointsto.constraints.UnsupportedFeatureException;
 import com.oracle.graal.pointsto.infrastructure.AnalysisConstantPool;
@@ -166,7 +166,7 @@ public class AnalysisUniverse implements Universe {
         return sealed;
     }
 
-    public void setAnalysisDataValid(BigBang bb, boolean dataIsValid) {
+    public void setAnalysisDataValid(PointsToAnalysis bb, boolean dataIsValid) {
         if (dataIsValid) {
             buildSubTypes();
             collectMethodImplementations(bb);
@@ -604,7 +604,7 @@ public class AnalysisUniverse implements Universe {
         }
     }
 
-    private void collectMethodImplementations(BigBang bb) {
+    private void collectMethodImplementations(PointsToAnalysis bb) {
         for (AnalysisMethod method : methods.values()) {
 
             Set<AnalysisMethod> implementations = getMethodImplementations(bb, method);
@@ -612,7 +612,7 @@ public class AnalysisUniverse implements Universe {
         }
     }
 
-    public static Set<AnalysisMethod> getMethodImplementations(StaticAnalysisEngine analysis, AnalysisMethod method) {
+    public static Set<AnalysisMethod> getMethodImplementations(BigBang bb, AnalysisMethod method) {
         Set<AnalysisMethod> implementations = new LinkedHashSet<>();
         if (method.wrapped.canBeStaticallyBound() || method.isConstructor()) {
             if (method.isImplementationInvoked()) {
@@ -623,7 +623,7 @@ public class AnalysisUniverse implements Universe {
                 collectMethodImplementations(method, method.getDeclaringClass(), implementations);
             } catch (UnsupportedFeatureException ex) {
                 String message = String.format("Error while collecting implementations of %s : %s%n", method.format("%H.%n(%p)"), ex.getMessage());
-                analysis.getUnsupportedFeatures().addMessage(method.format("%H.%n(%p)"), method, message, null, ex.getCause());
+                bb.getUnsupportedFeatures().addMessage(method.format("%H.%n(%p)"), method, message, null, ex.getCause());
             }
         }
         return implementations;
