@@ -1711,8 +1711,8 @@ public class NativeImageGenerator {
     void printImageBuildStatistics(String imageName) {
         Consumer<PrintWriter> reporter = ImageSingletons.lookup(ImageBuildStatistics.class).getReporter();
         String description = "image build statistics";
-        if (ImageBuildStatistics.Options.ImageBuildStatisticsFile.hasBeenSet(bigbang.getOptions())) {
-            final File file = new File(ImageBuildStatistics.Options.ImageBuildStatisticsFile.getValue(bigbang.getOptions()));
+        if (ImageBuildStatistics.Options.ImageBuildStatisticsFile.hasBeenSet(bb.getOptions())) {
+            final File file = new File(ImageBuildStatistics.Options.ImageBuildStatisticsFile.getValue(bb.getOptions()));
             ReportUtils.report(description, file.getAbsoluteFile().toPath(), reporter);
         } else {
             String name = "image_build_statistics_" + ReportUtils.extractImageName(imageName);
