@@ -24,7 +24,6 @@
  */
 package com.oracle.svm.hosted.lambda;
 
-import com.oracle.graal.pointsto.BigBang;
 import org.graalvm.compiler.java.LambdaUtils;
 import java.util.HashSet;
 import java.util.Set;
@@ -35,6 +34,7 @@ import org.graalvm.compiler.debug.DebugContext.Builder;
 import org.graalvm.compiler.options.OptionValues;
 import org.graalvm.compiler.printer.GraalDebugHandlersFactory;
 
+import com.oracle.graal.pointsto.BigBang;
 import com.oracle.graal.pointsto.infrastructure.SubstitutionProcessor;
 import com.oracle.svm.hosted.c.GraalAccess;
 import com.oracle.svm.hosted.phases.NoClassInitializationPlugin;

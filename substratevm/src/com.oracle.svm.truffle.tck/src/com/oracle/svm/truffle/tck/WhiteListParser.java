@@ -35,9 +35,9 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 
-import com.oracle.svm.hosted.analysis.Inflation;
 import org.graalvm.nativeimage.Platforms;
 
+import com.oracle.graal.pointsto.BigBang;
 import com.oracle.graal.pointsto.meta.AnalysisMethod;
 import com.oracle.graal.pointsto.meta.AnalysisType;
 import com.oracle.graal.pointsto.meta.AnalysisUniverse;
@@ -56,10 +56,10 @@ final class WhiteListParser extends ConfigurationParser {
     private static final String CONSTRUCTOR_NAME = "<init>";
 
     private final ImageClassLoader imageClassLoader;
-    private final Inflation bb;
+    private final BigBang bb;
     private Set<AnalysisMethod> whiteList;
 
-    WhiteListParser(ImageClassLoader imageClassLoader, Inflation bb) {
+    WhiteListParser(ImageClassLoader imageClassLoader, BigBang bb) {
         this.imageClassLoader = Objects.requireNonNull(imageClassLoader, "ImageClassLoader must be non null");
         this.bb = Objects.requireNonNull(bb, "BigBang must be non null");
     }
@@ -285,9 +285,9 @@ final class WhiteListParser extends ConfigurationParser {
 
         private final ResolvedJavaType owner;
         private final List<? extends ResolvedJavaType> params;
-        private final Inflation bb;
+        private final BigBang bb;
 
-        SignaturePredicate(AnalysisType owner, List<? extends ResolvedJavaType> params, Inflation bb) {
+        SignaturePredicate(AnalysisType owner, List<? extends ResolvedJavaType> params, BigBang bb) {
             this.owner = Objects.requireNonNull(owner, "Owner must be non null.").getWrappedWithoutResolve();
             this.params = Objects.requireNonNull(params, "Params must be non null.");
             this.bb = Objects.requireNonNull(bb, "Analysis must be non null.");

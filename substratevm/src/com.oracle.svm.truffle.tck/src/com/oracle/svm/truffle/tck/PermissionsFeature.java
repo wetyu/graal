@@ -48,7 +48,6 @@ import java.util.Set;
 import java.util.function.BooleanSupplier;
 import java.util.function.Predicate;
 
-import com.oracle.svm.hosted.analysis.Inflation;
 import org.graalvm.compiler.debug.DebugContext;
 import org.graalvm.compiler.graph.NodeInputList;
 import org.graalvm.compiler.nodes.Invoke;
@@ -62,6 +61,7 @@ import org.graalvm.nativeimage.ImageSingletons;
 import org.graalvm.nativeimage.hosted.Feature;
 import org.graalvm.polyglot.io.FileSystem;
 
+import com.oracle.graal.pointsto.BigBang;
 import com.oracle.graal.pointsto.flow.InvokeTypeFlow;
 import com.oracle.graal.pointsto.meta.AnalysisMethod;
 import com.oracle.graal.pointsto.meta.AnalysisType;
@@ -186,7 +186,7 @@ public class PermissionsFeature implements Feature {
         FeatureImpl.AfterAnalysisAccessImpl accessImpl = (FeatureImpl.AfterAnalysisAccessImpl) access;
         DebugContext debugContext = accessImpl.getDebugContext();
         try (DebugContext.Scope s = debugContext.scope(ClassUtil.getUnqualifiedName(getClass()))) {
-            Inflation bb = accessImpl.getStaticAnalysisEngine();
+            BigBang bb = accessImpl.getBigBang();
             WhiteListParser parser = new WhiteListParser(accessImpl.getImageClassLoader(), bb);
             ConfigurationParserUtils.parseAndRegisterConfigurations(parser,
                             accessImpl.getImageClassLoader(),
@@ -247,12 +247,12 @@ public class PermissionsFeature implements Feature {
      * called method in {@code targets} or transitive caller of {@code targets} the resulting
      * {@code Map} contains an entry holding all direct callers of the method in the entry value.
      *
-     * @param bb the {@link Inflation}
+     * @param bb the {@link BigBang}
      * @param targets the target methods to build call graph for
      * @param debugContext the {@link DebugContext}
      */
     private Map<AnalysisMethod, Set<AnalysisMethod>> callGraph(
-                    Inflation bb,
+                    BigBang bb,
                     Set<AnalysisMethod> targets,
                     DebugContext debugContext) {
         Deque<AnalysisMethod> todo = new LinkedList<>();
@@ -368,7 +368,7 @@ public class PermissionsFeature implements Feature {
      * @param maxDepth maximal call trace depth
      * @param maxReports maximal number of reports
      * @param callGraph call graph obtained from
-     *            {@link PermissionsFeature#callGraph(Inflation, java.util.Set, org.graalvm.compiler.debug.DebugContext)}
+     *            {@link PermissionsFeature#callGraph(BigBang, java.util.Set, org.graalvm.compiler.debug.DebugContext)}
      * @param contextFilters filters removing known valid calls
      * @param visited visited methods
      * @param depth current depth
@@ -496,13 +496,13 @@ public class PermissionsFeature implements Feature {
     /**
      * Finds methods declared in {@code owner} class using {@code filter} predicate.
      *
-     * @param bb the {@link Inflation}
+     * @param bb the {@link BigBang}
      * @param owner the class which methods should be listed
      * @param filter the predicate filtering methods declared in {@code owner}
      * @return the methods accepted by {@code filter}
      * @throws IllegalStateException if owner cannot be resolved
      */
-    private static Set<AnalysisMethod> findMethods(Inflation bb, Class<?> owner, Predicate<ResolvedJavaMethod> filter) {
+    private static Set<AnalysisMethod> findMethods(BigBang bb, Class<?> owner, Predicate<ResolvedJavaMethod> filter) {
         AnalysisType clazz = bb.getMetaAccess().lookupJavaType(owner);
         if (clazz == null) {
             throw new IllegalStateException("Cannot resolve " + owner.getName() + ".");
@@ -513,12 +513,12 @@ public class PermissionsFeature implements Feature {
     /**
      * Finds methods declared in {@code owner} {@link AnalysisType} using {@code filter} predicate.
      *
-     * @param bb the {@link Inflation}
+     * @param bb the {@link BigBang}
      * @param owner the {@link AnalysisType} which methods should be listed
      * @param filter the predicate filtering methods declared in {@code owner}
      * @return the methods accepted by {@code filter}
      */
-    static Set<AnalysisMethod> findMethods(Inflation bb, AnalysisType owner, Predicate<ResolvedJavaMethod> filter) {
+    static Set<AnalysisMethod> findMethods(BigBang bb, AnalysisType owner, Predicate<ResolvedJavaMethod> filter) {
         return findImpl(bb, owner.getWrappedWithoutResolve().getDeclaredMethods(), filter);
     }
 
@@ -526,16 +526,16 @@ public class PermissionsFeature implements Feature {
      * Finds constructors declared in {@code owner} {@link AnalysisType} using {@code filter}
      * predicate.
      *
-     * @param bb the {@link Inflation}
+     * @param bb the {@link BigBang}
      * @param owner the {@link AnalysisType} which constructors should be listed
      * @param filter the predicate filtering constructors declared in {@code owner}
      * @return the constructors accepted by {@code filter}
      */
-    static Set<AnalysisMethod> findConstructors(Inflation bb, AnalysisType owner, Predicate<ResolvedJavaMethod> filter) {
+    static Set<AnalysisMethod> findConstructors(BigBang bb, AnalysisType owner, Predicate<ResolvedJavaMethod> filter) {
         return findImpl(bb, owner.getWrappedWithoutResolve().getDeclaredConstructors(), filter);
     }
 
-    private static Set<AnalysisMethod> findImpl(Inflation bb, ResolvedJavaMethod[] methods, Predicate<ResolvedJavaMethod> filter) {
+    private static Set<AnalysisMethod> findImpl(BigBang bb, ResolvedJavaMethod[] methods, Predicate<ResolvedJavaMethod> filter) {
         Set<AnalysisMethod> result = new HashSet<>();
         for (ResolvedJavaMethod m : methods) {
             if (filter.test(m)) {
@@ -579,8 +579,8 @@ public class PermissionsFeature implements Feature {
         private final ResolvedJavaMethod threadInterrupt;
         private final ResolvedJavaMethod threadCurrentThread;
 
-        SafeInterruptRecognizer(Inflation bb) {
-            this.hostVM = bb.getHostVM();
+        SafeInterruptRecognizer(BigBang bb) {
+            this.hostVM = ((SVMHost) bb.getHostVM());
 
             Set<AnalysisMethod> methods = findMethods(bb, Thread.class, (m) -> m.getName().equals("interrupt"));
             if (methods.size() != 1) {
@@ -625,8 +625,8 @@ public class PermissionsFeature implements Feature {
         private final SVMHost hostVM;
         private final Set<AnalysisMethod> dopriviledged;
 
-        SafePrivilegedRecognizer(Inflation bb) {
-            this.hostVM = bb.getHostVM();
+        SafePrivilegedRecognizer(BigBang bb) {
+            this.hostVM = ((SVMHost) bb.getHostVM());
             this.dopriviledged = findMethods(bb, java.security.AccessController.class, (m) -> m.getName().equals("doPrivileged") || m.getName().equals("doPrivilegedWithCombiner"));
         }
 
@@ -683,7 +683,7 @@ public class PermissionsFeature implements Feature {
         private final ResolvedJavaMethod nextService;
         private final ImageClassLoader imageClassLoader;
 
-        SafeServiceLoaderRecognizer(Inflation bb, ImageClassLoader imageClassLoader) {
+        SafeServiceLoaderRecognizer(BigBang bb, ImageClassLoader imageClassLoader) {
             AnalysisType serviceLoaderIterator = bb.getMetaAccess().lookupJavaType("java.util.ServiceLoader$LazyIterator");
             Set<AnalysisMethod> methods = findMethods(bb, serviceLoaderIterator, (m) -> m.getName().equals("nextService"));
             if (methods.size() != 1) {

@@ -29,7 +29,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
-import com.oracle.svm.hosted.analysis.Inflation;
+import com.oracle.graal.pointsto.BigBang;
 import org.graalvm.nativeimage.ImageSingletons;
 import org.graalvm.nativeimage.c.function.CFunctionPointer;
 import org.graalvm.nativeimage.hosted.Feature;
@@ -48,7 +48,7 @@ import jdk.vm.ci.meta.ResolvedJavaType;
 
 public final class CEntryPointCallStubSupport {
 
-    static void initialize(Inflation bb) {
+    static void initialize(BigBang bb) {
         ImageSingletons.add(CEntryPointCallStubSupport.class, new CEntryPointCallStubSupport(bb));
     }
 
@@ -56,7 +56,7 @@ public final class CEntryPointCallStubSupport {
         return ImageSingletons.lookup(CEntryPointCallStubSupport.class);
     }
 
-    private final Inflation bb;
+    private final BigBang bb;
     private final Map<AnalysisMethod, AnalysisMethod> methodToStub = new ConcurrentHashMap<>();
     private final Map<AnalysisMethod, AnalysisMethod> methodToJavaStub = new ConcurrentHashMap<>();
     private NativeLibraries nativeLibraries;
@@ -67,7 +67,7 @@ public final class CEntryPointCallStubSupport {
      */
     private final ConcurrentHashMap<CFunctionPointer, BoxedRelocatedPointer> cFunctionPointerCache = new ConcurrentHashMap<>();
 
-    private CEntryPointCallStubSupport(Inflation bb) {
+    private CEntryPointCallStubSupport(BigBang bb) {
         this.bb = bb;
     }
 
@@ -139,7 +139,7 @@ class CEntryPointCallStubFeature implements Feature {
     @Override
     public void duringSetup(DuringSetupAccess arg) {
         DuringSetupAccessImpl access = (DuringSetupAccessImpl) arg;
-        CEntryPointCallStubSupport.initialize(access.getStaticAnalysisEngine());
+        CEntryPointCallStubSupport.initialize(access.getBigBang());
     }
 
     @Override

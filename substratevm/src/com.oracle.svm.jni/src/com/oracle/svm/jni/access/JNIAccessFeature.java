@@ -36,7 +36,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 
-import com.oracle.svm.hosted.analysis.Inflation;
+import com.oracle.graal.pointsto.BigBang;
 import org.graalvm.compiler.api.replacements.Fold;
 import org.graalvm.compiler.options.Option;
 import org.graalvm.nativeimage.ImageSingletons;
@@ -291,7 +291,7 @@ public class JNIAccessFeature implements Feature {
             CEntryPointData unpublished = CEntryPointData.createCustomUnpublished();
             wrappers.forEach(wrapper -> {
                 AnalysisMethod analysisWrapper = access.getUniverse().lookup(wrapper);
-                access.getStaticAnalysisEngine().addRootMethod(analysisWrapper);
+                access.getBigBang().addRootMethod(analysisWrapper);
                 analysisWrapper.registerAsEntryPoint(unpublished); // ensures C calling convention
             });
             return jniMethod;
@@ -321,7 +321,7 @@ public class JNIAccessFeature implements Feature {
             MaterializedConstantFields.singleton().register(field);
         }
 
-        Inflation bb = access.getStaticAnalysisEngine();
+        BigBang bb = access.getBigBang();
         bb.registerAsJNIAccessed(field, writable);
     }
 
