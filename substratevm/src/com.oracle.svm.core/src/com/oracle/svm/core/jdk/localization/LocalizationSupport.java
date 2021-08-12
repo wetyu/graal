@@ -141,4 +141,9 @@ public class LocalizationSupport {
             }
         }
     }
+
+    public void addClassBasedResourceBundle(Class<?> bundleClass) {
+        RuntimeReflection.register(bundleClass);
+        RuntimeReflection.registerForReflectiveInstantiation(bundleClass);
+    }
 }
