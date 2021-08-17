@@ -36,15 +36,8 @@ import jdk.vm.ci.meta.JavaConstant;
 
 public class AnalysisObjectScanner extends ObjectScanner {
 
-    /**
-     * As opposed to the other subclasses of Object scanner, this one is very points-to specific,
-     * therefore it is keeping a reference to BigBang.
-     */
-    private final PointsToAnalysis analysis;
-
     public AnalysisObjectScanner(PointsToAnalysis bb, CompletionExecutor executor, ReusableSet scannedObjects) {
         super(bb, executor, scannedObjects);
-        this.analysis = bb;
     }
 
     @Override
@@ -59,12 +52,13 @@ public class AnalysisObjectScanner extends ObjectScanner {
         FieldTypeFlow fieldTypeFlow = getFieldTypeFlow(field, receiver);
         if (!fieldTypeFlow.getState().canBeNull()) {
             /* Signal that the field can contain null. */
-            fieldTypeFlow.addState(analysis, TypeState.forNull());
+            fieldTypeFlow.addState(getAnalysis(), TypeState.forNull());
         }
     }
 
     @Override
     public void forNonNullFieldValue(JavaConstant receiver, AnalysisField field, JavaConstant fieldValue) {
+        PointsToAnalysis analysis = getAnalysis();
         AnalysisType fieldType = analysis.getMetaAccess().lookupJavaType(analysis.getSnippetReflectionProvider().asObject(Object.class, fieldValue).getClass());
         assert fieldType.isInstantiated() : fieldType;
 
@@ -97,6 +91,7 @@ public class AnalysisObjectScanner extends ObjectScanner {
              * The field comes from a constant scan, thus it's type flow is mapped to the unique
              * constant object.
              */
+            PointsToAnalysis analysis = getAnalysis();
             AnalysisType receiverType = analysis.getMetaAccess().lookupJavaType(analysis.getSnippetReflectionProvider().asObject(Object.class, receiver).getClass());
             AnalysisObject constantReceiverObj = analysis.analysisPolicy().createConstantObject(analysis, receiver, receiverType);
             return constantReceiverObj.getInstanceFieldFlow(analysis, field, true);
@@ -108,12 +103,13 @@ public class AnalysisObjectScanner extends ObjectScanner {
         ArrayElementsTypeFlow arrayObjElementsFlow = getArrayElementsFlow(array, arrayType);
         if (!arrayObjElementsFlow.getState().canBeNull()) {
             /* Signal that the constant array can contain null. */
-            arrayObjElementsFlow.addState(analysis, TypeState.forNull());
+            arrayObjElementsFlow.addState(getAnalysis(), TypeState.forNull());
         }
     }
 
     @Override
     public void forNonNullArrayElement(JavaConstant array, AnalysisType arrayType, JavaConstant elementConstant, AnalysisType elementType, int elementIndex) {
+        PointsToAnalysis analysis = getAnalysis();
         /*
          * *ALL* constants are scanned after each analysis iteration, thus the elementType will
          * eventually be added to the AllInstantiatedTypeFlow and the array elements flow will
@@ -132,15 +128,20 @@ public class AnalysisObjectScanner extends ObjectScanner {
 
     /** Get the array elements flow given its type and the array constant. */
     private ArrayElementsTypeFlow getArrayElementsFlow(JavaConstant array, AnalysisType arrayType) {
+        PointsToAnalysis analysis = getAnalysis();
         AnalysisObject arrayObjConstant = analysis.analysisPolicy().createConstantObject(analysis, array, arrayType);
         return arrayObjConstant.getArrayElementsFlow(analysis, true);
     }
 
     @Override
     protected void forScannedConstant(JavaConstant value, ScanReason reason) {
-        Object valueObj = analysis.getSnippetReflectionProvider().asObject(Object.class, value);
-        AnalysisType type = analysis.getMetaAccess().lookupJavaType(valueObj.getClass());
+        Object valueObj = bb.getSnippetReflectionProvider().asObject(Object.class, value);
+        AnalysisType type = bb.getMetaAccess().lookupJavaType(valueObj.getClass());
 
         type.registerAsInHeap();
+    }
+
+    private PointsToAnalysis getAnalysis() {
+        return ((PointsToAnalysis) bb);
     }
 }
