@@ -333,9 +333,6 @@ public class MultiTypeState extends TypeState {
 
     @Override
     public boolean closeToAllInstantiated(StaticAnalysisEngine analysis) {
-        if (!(analysis instanceof BigBang)) {
-            return false;
-        }
         BigBang bb = (BigBang) analysis;
         if (typesCount > 200) {
             MultiTypeState allInstState = (MultiTypeState) bb.getAllInstantiatedTypeFlow().getState();
