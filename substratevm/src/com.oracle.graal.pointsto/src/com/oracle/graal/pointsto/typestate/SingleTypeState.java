@@ -29,10 +29,7 @@ import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Iterator;
 
-import org.graalvm.compiler.options.OptionValues;
-
 import com.oracle.graal.pointsto.PointsToAnalysis;
-import com.oracle.graal.pointsto.api.PointstoOptions;
 import com.oracle.graal.pointsto.flow.context.object.AnalysisObject;
 import com.oracle.graal.pointsto.meta.AnalysisType;
 
@@ -70,7 +67,7 @@ public class SingleTypeState extends TypeState {
         PointsToStats.registerTypeState(bb, this);
     }
 
-    protected boolean checkObjects(BigBang bb) {
+    protected boolean checkObjects(PointsToAnalysis bb) {
         assert bb.extendedAsserts();
 
         /* Check that the objects array are sorted by type. */

@@ -29,10 +29,8 @@ import java.util.BitSet;
 import java.util.Iterator;
 
 import com.oracle.graal.pointsto.BigBang;
-import org.graalvm.compiler.options.OptionValues;
 
 import com.oracle.graal.pointsto.PointsToAnalysis;
-import com.oracle.graal.pointsto.api.PointstoOptions;
 import com.oracle.graal.pointsto.flow.context.object.AnalysisObject;
 import com.oracle.graal.pointsto.meta.AnalysisType;
 import com.oracle.graal.pointsto.meta.AnalysisUniverse;

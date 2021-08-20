@@ -415,7 +415,7 @@ public class AnalysisType implements WrappedJavaType, OriginalClassProvider, Com
         assert isArray() || (isInstanceClass() && !Modifier.isAbstract(getModifiers())) : this;
         universe.hostVM.checkForbidden(this, usageKind);
 
-        BigBang bb = universe.getBigbang();
+        PointsToAnalysis bb = ((PointsToAnalysis) universe.getBigbang());
         TypeState typeState = TypeState.forExactType(bb, this, true);
         TypeState typeStateNonNull = TypeState.forExactType(bb, this, false);
 
@@ -432,7 +432,7 @@ public class AnalysisType implements WrappedJavaType, OriginalClassProvider, Com
      * through type flows.
      */
     public void registerAsAssignable(BigBang bb) {
-        TypeState typeState = TypeState.forType(bb, this, true);
+        TypeState typeState = TypeState.forType(((PointsToAnalysis) bb), this, true);
         /*
          * Register the assignable type with its super types. Skip this type, it can lead to a
          * deadlock when this is called when the type is created.
@@ -513,8 +513,8 @@ public class AnalysisType implements WrappedJavaType, OriginalClassProvider, Com
     }
 
     private synchronized void addAssignableType(BigBang bb, TypeState typeState) {
-        assignableTypesState = TypeState.forUnion(bb, assignableTypesState, typeState);
-        assignableTypesNonNullState = assignableTypesState.forNonNull(bb);
+        assignableTypesState = TypeState.forUnion(((PointsToAnalysis) bb), assignableTypesState, typeState);
+        assignableTypesNonNullState = assignableTypesState.forNonNull(((PointsToAnalysis) bb));
     }
 
     public void ensureInitialized() {
