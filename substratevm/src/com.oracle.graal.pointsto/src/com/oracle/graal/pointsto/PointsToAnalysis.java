@@ -110,6 +110,7 @@ public abstract class PointsToAnalysis implements BigBang {
 
     protected final boolean trackTypeFlowInputs;
     protected final boolean reportAnalysisStatistics;
+    protected final boolean extendedAsserts;
 
     /**
      * Processing queue.
@@ -162,6 +163,7 @@ public abstract class PointsToAnalysis implements BigBang {
         if (reportAnalysisStatistics) {
             PointsToStats.init(this);
         }
+        extendedAsserts = PointstoOptions.ExtendedAsserts.getValue(options);
 
         unsafeLoads = new ConcurrentHashMap<>();
         unsafeStores = new ConcurrentHashMap<>();
@@ -226,6 +228,10 @@ public abstract class PointsToAnalysis implements BigBang {
     }
 
     @Override
+    public boolean extendedAsserts() {
+        return extendedAsserts;
+    }
+
     public OptionValues getOptions() {
         return options;
     }
@@ -393,6 +399,10 @@ public abstract class PointsToAnalysis implements BigBang {
         return objectType.getTypeFlow(this, true);
     }
 
+    public TypeState getAllInstantiatedTypes() {
+        return getAllInstantiatedTypeFlow().getState();
+    }
+
     public TypeFlow<?> getAllSynchronizedTypeFlow() {
         return allSynchronizedTypeFlow;
     }
@@ -405,7 +415,7 @@ public abstract class PointsToAnalysis implements BigBang {
          * monitors.
          */
         if (allSynchronizedTypeFlow.isSaturated()) {
-            return getAllInstantiatedTypeFlow().getState();
+            return getAllInstantiatedTypes();
         }
         return allSynchronizedTypeFlow.getState();
     }
@@ -672,7 +682,6 @@ public abstract class PointsToAnalysis implements BigBang {
         } else {
             objectScanner.scanBootImageHeapRoots(null, null);
         }
-        AnalysisType.updateAssignableTypes(this);
     }
 
     @Override
@@ -868,7 +877,7 @@ public abstract class PointsToAnalysis implements BigBang {
 
         @Override
         public void print() {
-            System.out.format("%5d %5d %5d  |", numParsedGraphs.get(), getAllInstantiatedTypeFlow().getState().typesCount(), universe.getNextTypeId());
+            System.out.format("%5d %5d %5d  |", numParsedGraphs.get(), getAllInstantiatedTypes().typesCount(), universe.getNextTypeId());
             super.print();
             System.out.println();
         }
