@@ -625,7 +625,7 @@ public abstract class PointsToAnalysis implements BigBang {
     @Override
     public boolean finish() throws InterruptedException {
         try (Indent indent = debug.logAndIndent("starting analysis in BigBang.finish")) {
-            universe.setAnalysisDataValid(this, false);
+            universe.setAnalysisDataValid(false);
             boolean didSomeWork = false;
 
             int numTypes;
@@ -644,7 +644,7 @@ public abstract class PointsToAnalysis implements BigBang {
                 }
             } while (executor.getPostedOperations() != 0 || numTypes != universe.getTypes().size());
 
-            universe.setAnalysisDataValid(this, true);
+            universe.setAnalysisDataValid(true);
 
             return didSomeWork;
         }

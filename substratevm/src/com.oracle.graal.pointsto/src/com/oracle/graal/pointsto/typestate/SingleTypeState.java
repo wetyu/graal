@@ -29,6 +29,7 @@ import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Iterator;
 
+import com.oracle.graal.pointsto.BigBang;
 import com.oracle.graal.pointsto.PointsToAnalysis;
 import com.oracle.graal.pointsto.flow.context.object.AnalysisObject;
 import com.oracle.graal.pointsto.meta.AnalysisType;
@@ -41,12 +42,12 @@ public class SingleTypeState extends TypeState {
     /** Has this type state been merged with the all-instantiated type state? */
     private boolean merged;
 
-    public SingleTypeState(BigBang bb, boolean canBeNull, int properties, ArrayList<AnalysisObject> objects) {
+    public SingleTypeState(PointsToAnalysis bb, boolean canBeNull, int properties, ArrayList<AnalysisObject> objects) {
         this(bb, canBeNull, properties, objects.toArray(new AnalysisObject[objects.size()]));
     }
 
     /** Creates a new type state from incoming objects. */
-    public SingleTypeState(BigBang bb, boolean canBeNull, int properties, AnalysisObject... objects) {
+    public SingleTypeState(PointsToAnalysis bb, boolean canBeNull, int properties, AnalysisObject... objects) {
         super(properties);
         this.objects = objects;
         this.canBeNull = canBeNull;
@@ -58,7 +59,7 @@ public class SingleTypeState extends TypeState {
     }
 
     /** Create a type state with the same content and a reversed canBeNull value. */
-    protected SingleTypeState(BigBang bb, boolean canBeNull, SingleTypeState other) {
+    protected SingleTypeState(PointsToAnalysis bb, boolean canBeNull, SingleTypeState other) {
         super(other.properties);
         this.objects = other.objects;
         this.canBeNull = canBeNull;
@@ -67,7 +68,7 @@ public class SingleTypeState extends TypeState {
         PointsToStats.registerTypeState(bb, this);
     }
 
-    protected boolean checkObjects(PointsToAnalysis bb) {
+    protected boolean checkObjects(BigBang bb) {
         assert bb.extendedAsserts();
 
         /* Check that the objects array are sorted by type. */

@@ -45,7 +45,6 @@ import org.graalvm.compiler.core.common.SuppressFBWarnings;
 import org.graalvm.word.WordBase;
 
 import com.oracle.graal.pointsto.AnalysisPolicy;
-import com.oracle.graal.pointsto.PointsToAnalysis;
 import com.oracle.graal.pointsto.api.HostVM;
 import com.oracle.graal.pointsto.constraints.UnsupportedFeatureException;
 import com.oracle.graal.pointsto.infrastructure.AnalysisConstantPool;
@@ -612,7 +611,7 @@ public class AnalysisUniverse implements Universe {
         }
     }
 
-    public static Set<AnalysisMethod> getMethodImplementations(StaticAnalysisEngine analysis, AnalysisMethod method) {
+    public static Set<AnalysisMethod> getMethodImplementations(BigBang bb, AnalysisMethod method) {
         Set<AnalysisMethod> implementations = new LinkedHashSet<>();
         if (method.wrapped.canBeStaticallyBound() || method.isConstructor()) {
             if (method.isImplementationInvoked()) {

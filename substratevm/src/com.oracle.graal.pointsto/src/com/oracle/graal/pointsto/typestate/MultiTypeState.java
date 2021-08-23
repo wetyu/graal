@@ -37,7 +37,7 @@ import com.oracle.graal.pointsto.meta.AnalysisUniverse;
 
 public class MultiTypeState extends TypeState {
 
-    protected final BigBang bb;
+    protected final PointsToAnalysis bb;
     /** The objects of this type state. */
     protected final AnalysisObject[] objects;
     /** See {@link #getObjectTypeIds()}. */
@@ -56,7 +56,7 @@ public class MultiTypeState extends TypeState {
     protected boolean merged;
 
     /** Creates a new type state using the provided types bit set and objects. */
-    MultiTypeState(BigBang bb, boolean canBeNull, int properties, BitSet typesBitSet, AnalysisObject... objects) {
+    MultiTypeState(PointsToAnalysis bb, boolean canBeNull, int properties, BitSet typesBitSet, AnalysisObject... objects) {
         super(properties);
         this.bb = bb;
         this.objects = objects;
@@ -86,7 +86,7 @@ public class MultiTypeState extends TypeState {
     }
 
     /** Create a type state with the same content and a reversed canBeNull value. */
-    private MultiTypeState(BigBang bb, boolean canBeNull, MultiTypeState other) {
+    private MultiTypeState(PointsToAnalysis bb, boolean canBeNull, MultiTypeState other) {
         super(other.properties);
         this.bb = bb;
         this.objects = other.objects;
@@ -318,7 +318,7 @@ public class MultiTypeState extends TypeState {
 
     /** Note that the objects of this type state have been merged. */
     @Override
-    public void noteMerge(BigBang unused) {
+    public void noteMerge(PointsToAnalysis unused) {
         assert bb.analysisPolicy().isMergingEnabled();
 
         if (!merged) {
