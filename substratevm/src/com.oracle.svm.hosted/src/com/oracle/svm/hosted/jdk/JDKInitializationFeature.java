@@ -52,6 +52,7 @@ public class JDKInitializationFeature implements Feature {
         rci.initializeAtBuildTime("java.text", "Core JDK classes are initialized at build time");
         rci.initializeAtBuildTime("java.time", "Core JDK classes are initialized at build time");
         rci.initializeAtBuildTime("java.util", "Core JDK classes are initialized at build time");
+        rci.rerunInitialization("java.util.ImmutableCollections", "Contains value used for randomizing iteration order.");
 
         rci.initializeAtBuildTime("javax.annotation.processing", "Core JDK classes are initialized at build time");
         rci.initializeAtBuildTime("javax.lang.model", "Core JDK classes are initialized at build time");
