@@ -414,6 +414,7 @@ suite = {
                 "com.oracle.objectfile",
                 "com.oracle.svm.core",
                 "com.oracle.graal.pointsto",
+                "com.oracle.graal.reachability"
             ],
             "javaCompliance": "8+",
             "checkstyleVersion": "8.36.1",
