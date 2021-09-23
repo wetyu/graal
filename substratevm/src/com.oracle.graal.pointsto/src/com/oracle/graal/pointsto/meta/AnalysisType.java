@@ -778,7 +778,8 @@ public class AnalysisType implements WrappedJavaType, OriginalClassProvider, Com
 
     @Override
     public boolean isAssignableFrom(ResolvedJavaType other) {
-        ResolvedJavaType subst = universe.substitutions.resolve(((AnalysisType) other).wrapped);
+        AnalysisType analysisOther = other instanceof AnalysisType ? ((AnalysisType) other) : universe.lookup(other);
+        ResolvedJavaType subst = universe.substitutions.resolve(analysisOther.wrapped);
         return wrapped.isAssignableFrom(subst);
     }
 
@@ -808,7 +809,8 @@ public class AnalysisType implements WrappedJavaType, OriginalClassProvider, Com
 
     @Override
     public AnalysisType findLeastCommonAncestor(ResolvedJavaType otherType) {
-        ResolvedJavaType subst = universe.substitutions.resolve(((AnalysisType) otherType).wrapped);
+        AnalysisType analysisOther = otherType instanceof AnalysisType ? (AnalysisType) otherType : universe.lookup(otherType);
+        ResolvedJavaType subst = universe.substitutions.resolve(analysisOther.wrapped);
         return universe.lookup(wrapped.findLeastCommonAncestor(subst));
     }
 
