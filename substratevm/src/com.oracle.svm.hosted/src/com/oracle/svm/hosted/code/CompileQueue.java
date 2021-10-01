@@ -1023,6 +1023,7 @@ public class CompileQueue {
                 graph = new StructuredGraph.Builder(getCustomizedOptions(debug), debug).method(method).build();
             }
         }
+        method.compilationInfo.graph = graph;
         try (DebugContext.Scope s = debug.scope("Parsing", graph, method, this)) {
 
             try {
