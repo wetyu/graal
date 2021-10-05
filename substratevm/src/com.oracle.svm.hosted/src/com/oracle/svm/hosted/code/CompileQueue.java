@@ -41,6 +41,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ForkJoinPool;
 
+import com.oracle.graal.pointsto.meta.AnalysisUniverse;
 import org.graalvm.collections.EconomicMap;
 import org.graalvm.compiler.api.replacements.Fold;
 import org.graalvm.compiler.api.replacements.SnippetReflectionProvider;
@@ -387,7 +388,7 @@ public class CompileQueue {
              * but are no longer reachable now.
              */
             for (HostedMethod method : universe.getMethods()) {
-                method.wrapped.setAnalyzedGraph(null);
+// method.wrapped.setAnalyzedGraph(null);
             }
 
             if (SubstrateOptions.AOTInline.getValue() && SubstrateOptions.AOTTrivialInline.getValue()) {
@@ -767,6 +768,13 @@ public class CompileQueue {
         AnalysisMethod aMethod = hMethod.getWrapped();
         StructuredGraph aGraph = aMethod.getAnalyzedGraph();
         if (aGraph == null) {
+            ResolvedJavaMethod wrapped = aMethod.wrapped;
+            while (wrapped instanceof AnalysisMethod) {
+                wrapped = ((AnalysisMethod) wrapped).wrapped;
+            }
+            aGraph = AnalysisUniverse.graphs.get(wrapped);
+        }
+        if (aGraph == null) {
             throw VMError.shouldNotReachHere("Method not parsed during static analysis: " + aMethod.format("%r %H.%n(%p)") + ". Reachable from: " + reason);
         }
 
@@ -774,7 +782,7 @@ public class CompileQueue {
          * The graph in the analysis universe is no longer necessary once it is transplanted into
          * the hosted universe.
          */
-        aMethod.setAnalyzedGraph(null);
+        // aMethod.setAnalyzedGraph(null);
 
         OptionValues options = getCustomizedOptions(debug);
         /*
