@@ -94,5 +94,7 @@ public interface BigBang extends ReachabilityAnalysis, HeapScanning {
 
     boolean extendedAsserts();
 
+    boolean strengthenGraalGraphs();
+
     Replacements getReplacements();
 }
