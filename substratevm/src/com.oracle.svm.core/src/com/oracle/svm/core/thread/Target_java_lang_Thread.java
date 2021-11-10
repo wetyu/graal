@@ -186,12 +186,12 @@ public final class Target_java_lang_Thread {
          */
         this.threadData = new ThreadData();
 
-        JavaContinuations.LoomCompatibilityUtil.initThreadFields(this,
+        LoomSupport.CompatibilityUtil.initThreadFields(this,
                         (withGroup != null) ? withGroup : JavaThreads.singleton().mainGroup,
                         null, 0,
                         Thread.NORM_PRIORITY, asDaemon, ThreadStatus.RUNNABLE);
 
-        if (JavaContinuations.useLoom()) {
+        if (LoomSupport.isEnabled()) {
             tid = Target_java_lang_Thread_ThreadIdentifiers.next();
         } else {
             tid = nextThreadID();
@@ -348,7 +348,7 @@ public final class Target_java_lang_Thread {
          * Otherwise, a call to Thread.join() in the parent thread could succeed even before the
          * child thread starts, or it could hang in case that the child thread is already dead.
          */
-        JavaContinuations.LoomCompatibilityUtil.setThreadStatus(this, ThreadStatus.RUNNABLE);
+        LoomSupport.CompatibilityUtil.setThreadStatus(this, ThreadStatus.RUNNABLE);
         wasStartedByCurrentIsolate = true;
         parentThreadId = Thread.currentThread().getId();
         long stackSize = JavaThreads.getRequestedThreadSize(JavaThreads.fromTarget(this));

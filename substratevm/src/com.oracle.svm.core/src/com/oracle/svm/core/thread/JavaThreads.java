@@ -167,11 +167,11 @@ public abstract class JavaThreads {
     }
 
     public static int getThreadStatus(Thread thread) {
-        return JavaContinuations.LoomCompatibilityUtil.getThreadStatus(toTarget(thread));
+        return LoomSupport.CompatibilityUtil.getThreadStatus(toTarget(thread));
     }
 
     public static void setThreadStatus(Thread thread, int threadStatus) {
-        JavaContinuations.LoomCompatibilityUtil.setThreadStatus(toTarget(thread), threadStatus);
+        LoomSupport.CompatibilityUtil.setThreadStatus(toTarget(thread), threadStatus);
     }
 
     /**
@@ -214,7 +214,7 @@ public abstract class JavaThreads {
     }
 
     public static boolean isVirtual(Thread thread) {
-        if (!JavaContinuations.useLoom()) {
+        if (!LoomSupport.isEnabled()) {
             return false;
         }
         return toTarget(thread).isVirtual();
@@ -304,7 +304,7 @@ public abstract class JavaThreads {
     public static long getRequestedThreadSize(Thread thread) {
         /* Return a stack size based on parameters and command line flags. */
         long stackSize;
-        long threadSpecificStackSize = JavaContinuations.LoomCompatibilityUtil.getStackSize(toTarget(thread));
+        long threadSpecificStackSize = LoomSupport.CompatibilityUtil.getStackSize(toTarget(thread));
         if (threadSpecificStackSize != 0) {
             /* If the user set a thread stack size at thread creation, then use that. */
             stackSize = threadSpecificStackSize;
@@ -731,9 +731,9 @@ public abstract class JavaThreads {
             priority = parent.getPriority();
             daemon = parent.isDaemon();
         }
-        JavaContinuations.LoomCompatibilityUtil.initThreadFields(tjlt, group, target, stackSize, priority, daemon, ThreadStatus.NEW);
+        LoomSupport.CompatibilityUtil.initThreadFields(tjlt, group, target, stackSize, priority, daemon, ThreadStatus.NEW);
 
-        if (!JavaContinuations.useLoom()) {
+        if (!LoomSupport.isEnabled()) {
             JavaThreads.toTarget(group).addUnstarted();
         }
 
