@@ -83,6 +83,7 @@ import org.graalvm.compiler.nodes.type.NarrowOopStamp;
 import org.graalvm.compiler.phases.util.Providers;
 import org.graalvm.compiler.serviceprovider.JavaVersionUtil;
 import org.graalvm.nativeimage.c.constant.CEnum;
+import org.graalvm.nativeimage.c.function.CEntryPoint;
 import org.graalvm.util.GuardedAnnotationAccess;
 
 import com.oracle.svm.core.FrameAccess;
@@ -90,7 +91,6 @@ import com.oracle.svm.core.ReservedRegisters;
 import com.oracle.svm.core.SubstrateOptions;
 import com.oracle.svm.core.SubstrateUtil;
 import com.oracle.svm.core.annotate.Uninterruptible;
-import com.oracle.svm.core.c.function.CEntryPointOptions;
 import com.oracle.svm.core.graal.code.SubstrateCallingConvention;
 import com.oracle.svm.core.graal.code.SubstrateCallingConventionType;
 import com.oracle.svm.core.graal.code.SubstrateDataBuilder;
@@ -270,7 +270,7 @@ public class LLVMGenerator implements LIRGeneratorTool, SubstrateLIRGenerator {
             Object entryPointData = ((HostedMethod) method).getWrapped().getEntryPointData();
             if (entryPointData instanceof CEntryPointData) {
                 CEntryPointData cEntryPointData = (CEntryPointData) entryPointData;
-                if (cEntryPointData.getPublishAs() != CEntryPointOptions.Publish.NotPublished) {
+                if (cEntryPointData.getPublishAs() != CEntryPoint.Publish.NotPublished) {
                     String entryPointSymbolName = cEntryPointData.getSymbolName();
                     assert !entryPointSymbolName.isEmpty();
                     builder.addAlias(entryPointSymbolName);
