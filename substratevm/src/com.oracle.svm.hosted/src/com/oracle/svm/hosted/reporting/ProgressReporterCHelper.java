@@ -31,6 +31,8 @@ import java.nio.file.Paths;
 
 import org.graalvm.compiler.serviceprovider.JavaVersionUtil;
 
+import com.oracle.svm.core.OS;
+import com.oracle.svm.core.SubstrateUtil;
 import com.oracle.svm.hosted.image.AbstractImage.NativeImageKind;
 
 public final class ProgressReporterCHelper {
@@ -45,9 +47,12 @@ public final class ProgressReporterCHelper {
         if (JavaVersionUtil.JAVA_SPEC <= 8) {
             return; // TODO: remove as part of JDK8 removal (GR-35238).
         }
-        Path libRSSHelperPath = Paths.get(System.getProperty("java.home"), "lib", "svm", "builder", "lib", "libreporterchelper" + NativeImageKind.SHARED_LIBRARY.getFilenameSuffix());
-        if (Files.exists(libRSSHelperPath)) {
-            System.load(libRSSHelperPath.toString());
+        String osName = OS.getCurrent().name().toLowerCase();
+        String osArch = SubstrateUtil.getArchitectureName();
+        Path libCHelperPath = Paths.get(System.getProperty("java.home"), "lib", "svm", "builder", "clibraries",
+                        osName + "-" + osArch, "libreporterchelper" + NativeImageKind.SHARED_LIBRARY.getFilenameSuffix());
+        if (Files.exists(libCHelperPath)) {
+            System.load(libCHelperPath.toString());
         }
     }
 

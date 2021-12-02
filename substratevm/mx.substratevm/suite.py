@@ -1315,6 +1315,7 @@ suite = {
                     "dependency:com.oracle.svm.native.darwin/*",
                     "dependency:com.oracle.svm.native.jvm.posix/*",
                     "dependency:com.oracle.svm.native.jvm.windows/*",
+                    "dependency:com.oracle.svm.native.reporterchelper/*",
                 ],
             },
             "description" : "SubstrateVM image builder native components",
@@ -1550,16 +1551,6 @@ suite = {
                 "clibraries/" : ["extracted-dependency:substratevm:SVM_HOSTED_NATIVE"],
                 "builder/clibraries/" : ["extracted-dependency:substratevm:SVM_HOSTED_NATIVE"],
             },
-        },
-
-        "SVM_GRAALVM_LIBRARIES_SUPPORT" : {
-            "native" : True,
-            "platformDependent" : True,
-            "description" : "SubstrateVM support libraries for the GraalVM",
-            "layout" : {
-                "svm/builder/lib/" : ["dependency:com.oracle.svm.native.reporterchelper"],
-            },
-            "maven" : False,
         },
 
         "SVM_NFI_GRAALVM_SUPPORT" : {
