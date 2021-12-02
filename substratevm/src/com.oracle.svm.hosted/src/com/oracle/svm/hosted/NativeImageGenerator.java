@@ -552,6 +552,8 @@ public class NativeImageGenerator {
                 return;
             }
 
+            dump(imageName, aUniverse);
+
 // dumpAnalysisStats();
 
             NativeImageHeap heap;
@@ -698,7 +700,7 @@ public class NativeImageGenerator {
                 featureHandler.forEachFeature(feature -> feature.afterImageWrite(afterConfig));
             }
             reporter.printCreationEnd(imageTimer, writeTimer, image.getImageSize(), bb.getUniverse(), heap.getObjectCount(), image.getImageHeapSize(), codeCache.getCodeCacheSize(),
-                    codeCache.getCompilations().size());
+                            codeCache.getCompilations().size());
             if (SubstrateOptions.BuildOutputBreakdowns.getValue()) {
                 ProgressReporter.singleton().printBreakdowns(compileQueue.getCompilationTasks(), image.getHeap().getObjects());
             }
@@ -707,6 +709,14 @@ public class NativeImageGenerator {
                 methodSummaryStorage.persistData();
             }
         }
+    }
+
+    private void dump(String bigbang, AnalysisUniverse aUniverse) {
+        long types = aUniverse.getTypes().stream().filter(AnalysisType::isReachable).count();
+        long instantiatedTypes = aUniverse.getTypes().stream().filter(AnalysisType::isInstantiated).count();
+        long invokedMethods = aUniverse.getMethods().stream().filter(AnalysisMethod::isInvoked).count();
+        long implInvokedMethods = aUniverse.getMethods().stream().filter(AnalysisMethod::isImplementationInvoked).count();
+        System.out.println("!!!!!" + bigbang + " types:" + instantiatedTypes + " / " + types + ", methods: " + invokedMethods + " / " + implInvokedMethods);
     }
 
     private static final String DUMP_FOLDER = "/Users/dkozak/tmp/hello-dir/stats/";
@@ -724,7 +734,7 @@ public class NativeImageGenerator {
         String prefix = analysisPrefix();
 
         List<Pair<List<String>, String>> pairs = Arrays.asList(Pair.create(reachableTypes, "types"), Pair.create(invokedMethods, "invokedMethods"),
-                Pair.create(implInvokedMethods, "implInvokedMethods"));
+                        Pair.create(implInvokedMethods, "implInvokedMethods"));
 
         for (Pair<List<String>, String> pair : pairs) {
             try (FileWriter writer = new FileWriter(DUMP_FOLDER + prefix + pair.getRight())) {
