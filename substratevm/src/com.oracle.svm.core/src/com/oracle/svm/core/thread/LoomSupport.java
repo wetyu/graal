@@ -32,7 +32,6 @@ import org.graalvm.word.Pointer;
 
 import com.oracle.svm.core.SubstrateOptions;
 import com.oracle.svm.core.SubstrateUtil;
-import com.oracle.svm.core.monitor.MonitorSupport;
 import com.oracle.svm.core.stack.JavaFrameAnchor;
 import com.oracle.svm.core.stack.JavaFrameAnchors;
 
@@ -53,13 +52,9 @@ public final class LoomSupport {
         IsolateThread vmThread = isCurrentThread ? CurrentIsolate.getCurrentThread() : JavaThreads.getIsolateThread(SubstrateUtil.cast(thread, Thread.class));
 
         if (cont != null) {
-            int threadMonitorCount = MonitorSupport.singleton().countThreadLock(vmThread);
-
             while (true) {
                 if (cont.cs > 0) {
                     return JavaContinuations.PINNED_CRITICAL_SECTION;
-                } else if (threadMonitorCount > cont.monitorBefore) {
-                    return JavaContinuations.PINNED_MONITOR;
                 }
 
                 if (cont.getParent() != null && cont.getScope() != scope) {
