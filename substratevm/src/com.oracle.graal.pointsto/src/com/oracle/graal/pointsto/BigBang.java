@@ -43,6 +43,7 @@ import com.oracle.graal.pointsto.meta.AnalysisType.UsageKind;
 import com.oracle.graal.pointsto.meta.AnalysisUniverse;
 import com.oracle.graal.pointsto.meta.HostedProviders;
 import com.oracle.graal.pointsto.util.Timer;
+import com.oracle.graal.pointsto.util.TimerManager;
 
 import jdk.vm.ci.meta.ConstantReflectionProvider;
 
@@ -122,4 +123,6 @@ public interface BigBang extends ReachabilityAnalysis, HeapScanning {
     default void onTypeInstantiated(AnalysisType type, UsageKind usageKind) {
     }
 
+
+    TimerManager getTimerManager();
 }
