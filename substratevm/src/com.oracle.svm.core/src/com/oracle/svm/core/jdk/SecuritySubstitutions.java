@@ -124,9 +124,7 @@ final class Target_java_security_AccessController {
              * PrintWriter/Logging is available yet. This manifested when
              * UseDedicatedVMOperationThread hosted option was set, triggering a runtime crash.
              */
-            Permissions perms = new Permissions();
-            perms.add(SecurityConstants.ALL_PERMISSION);
-            return new AccessControlContext(new ProtectionDomain[]{new ProtectionDomain(null, perms)});
+            return null;
         }
         return StackAccessControlContextVisitor.getFromStack();
     }
