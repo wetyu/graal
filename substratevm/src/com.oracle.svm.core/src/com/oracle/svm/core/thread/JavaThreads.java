@@ -204,7 +204,7 @@ public abstract class JavaThreads {
     }
 
     static boolean getAndClearInterrupt(Thread thread) {
-        if (isVirtual(thread)) {
+        if (supportsVirtual() && isVirtual(thread)) {
             return VirtualThreads.get().getAndClearInterrupt(thread);
         }
         return platformGetAndClearInterrupt(thread);
@@ -272,12 +272,15 @@ public abstract class JavaThreads {
         return platformThread.get(thread);
     }
 
-    @AlwaysInline("Inline checks.")
-    private static boolean isVirtual(Thread thread) {
-        return VirtualThreads.get().isVirtual(thread);
+    @Fold
+    static boolean supportsVirtual() {
+        return VirtualThreads.isSupported();
     }
 
-    @AlwaysInline("Inline checks.")
+    private static boolean isVirtual(Thread thread) {
+        return supportsVirtual() && VirtualThreads.get().isVirtual(thread);
+    }
+
     private static boolean isVirtualDisallowLoom(Thread thread) {
         if (LoomSupport.isEnabled()) {
             assert !isVirtual(thread) : "should not see Loom virtual thread objects here";
@@ -324,7 +327,7 @@ public abstract class JavaThreads {
         if (millis < 0) {
             throw new IllegalArgumentException("timeout value is negative");
         }
-        if (isVirtual(thread)) {
+        if (supportsVirtual() && isVirtual(thread)) {
             VirtualThreads.get().join(thread, millis);
             return;
         }
@@ -710,7 +713,7 @@ public abstract class JavaThreads {
     protected abstract void platformYield();
 
     void yield() {
-        if (isVirtualDisallowLoom(Thread.currentThread())) {
+        if (supportsVirtual() && isVirtualDisallowLoom(Thread.currentThread())) {
             VirtualThreads.get().yield();
         } else {
             platformYield();
@@ -919,7 +922,7 @@ public abstract class JavaThreads {
     }
 
     static void sleep(long millis) throws InterruptedException {
-        if (isVirtualDisallowLoom(Thread.currentThread())) {
+        if (supportsVirtual() && isVirtualDisallowLoom(Thread.currentThread())) {
             VirtualThreads.get().sleepMillis(millis);
         } else {
             platformSleep(millis);
@@ -991,7 +994,7 @@ public abstract class JavaThreads {
     }
 
     static boolean isAlive(Thread thread) {
-        if (isVirtualDisallowLoom(thread)) {
+        if (supportsVirtual() && isVirtualDisallowLoom(thread)) {
             return VirtualThreads.get().isAlive(thread);
         }
         return platformIsAlive(thread);
@@ -1014,7 +1017,7 @@ public abstract class JavaThreads {
 
     @Uninterruptible(reason = "Called from uninterruptible code.")
     public static void setCurrentThreadLockHelper(Object root) {
-        if (VirtualThreads.get().isSupported()) {
+        if (supportsVirtual()) {
             toTarget(Thread.currentThread()).lockHelper = root;
         } else {
             lockHelper.set(root);
@@ -1024,7 +1027,7 @@ public abstract class JavaThreads {
     @AlwaysInline("Locking fast path.")
     @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
     public static Object getCurrentThreadLockHelper() {
-        if (VirtualThreads.get().isSupported()) {
+        if (supportsVirtual()) {
             return toTarget(Thread.currentThread()).lockHelper;
         }
         return lockHelper.get();
