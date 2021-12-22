@@ -121,4 +121,5 @@ public interface BigBang extends ReachabilityAnalysis, HeapScanning {
     @SuppressWarnings("unused")
     default void onTypeInstantiated(AnalysisType type, UsageKind usageKind) {
     }
+
 }
