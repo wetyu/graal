@@ -467,7 +467,7 @@ public abstract class NativeImage extends AbstractImage {
              */
             if (SubstrateOptions.GenerateDebugInfo.getValue(HostedOptionValues.singleton()) > 0) {
                 TimerCollection timerCollection = TimerCollection.singleton();
-                Timer timer = timerCollection.createTimer(imageName, "dbginfo");
+                Timer timer = timerCollection.get(TimerCollection.Registry.DEBUG_INFO);
                 try (Timer.StopTimer t = timer.start()) {
                     ImageSingletons.add(SourceManager.class, new SourceManager());
                     DebugInfoProvider provider = new NativeImageDebugInfoProvider(debug, codeCache, heap);

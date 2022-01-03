@@ -143,9 +143,9 @@ public abstract class PointsToAnalysis implements BigBang {
         this.hostVM = hostVM;
         String imageName = hostVM.getImageName();
         this.typeFlowTimer = timerCollection.createTimer(imageName, "(typeflow)", false);
-        this.checkObjectsTimer = timerCollection.createTimer(imageName, "(objects)", false);
-        this.processFeaturesTimer = timerCollection.createTimer(imageName, "(features)", false);
-        this.analysisTimer = timerCollection.createTimer(imageName, "analysis", true);
+        this.checkObjectsTimer = timerCollection.get(TimerCollection.Registry.OBJECTS);
+        this.processFeaturesTimer = timerCollection.get(TimerCollection.Registry.FEATURES);
+        this.analysisTimer = timerCollection.get(TimerCollection.Registry.ANALYSIS);
 
         this.universe = universe;
         this.metaAccess = (AnalysisMetaAccess) providers.getMetaAccess();

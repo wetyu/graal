@@ -280,12 +280,14 @@ public class NativeImageGeneratorRunner {
         if (!verifyValidJavaVersionAndPlatform()) {
             return 1;
         }
-        TimerCollection timerCollection = new TimerCollection();
-        String imageName = null;
-        Timer totalTimer = timerCollection.createTimer("[total]", false);
 
         HostedOptionParser optionParser = classLoader.classLoaderSupport.getHostedOptionParser();
         OptionValues parsedHostedOptions = classLoader.classLoaderSupport.getParsedHostedOptions();
+
+        String imageName = SubstrateOptions.Name.getValue(parsedHostedOptions);
+        TimerCollection timerCollection = new TimerCollection();
+        timerCollection.initDefaultTimers(imageName);
+        Timer totalTimer = timerCollection.get(TimerCollection.Registry.TOTAL);
 
         ForkJoinPool analysisExecutor = null;
         ForkJoinPool compilationExecutor = null;
@@ -293,22 +295,18 @@ public class NativeImageGeneratorRunner {
         ProgressReporter reporter = new ProgressReporter(parsedHostedOptions);
         boolean wasSuccessfulBuild = false;
         try (StopTimer ignored = totalTimer.start()) {
-            Timer classlistTimer = timerCollection.createTimer("classlist", false);
+            Timer classlistTimer = timerCollection.get(TimerCollection.Registry.CLASSLIST);
             try (StopTimer ignored1 = classlistTimer.start()) {
                 classLoader.initAllClasses();
             }
 
             DebugContext debug = new DebugContext.Builder(parsedHostedOptions, new GraalDebugHandlersFactory(GraalAccess.getOriginalSnippetReflection())).build();
 
-            imageName = SubstrateOptions.Name.getValue(parsedHostedOptions);
             if (imageName.length() == 0) {
                 throw UserError.abort("No output file name specified. Use '%s'.", SubstrateOptionsParser.commandArgument(SubstrateOptions.Name, "<output-file>"));
             }
             try {
                 reporter.printStart(imageName);
-
-                totalTimer.setPrefix(imageName);
-                classlistTimer.setPrefix(imageName);
 
                 // print the time here to avoid interactions with flags processing
                 classlistTimer.print();
