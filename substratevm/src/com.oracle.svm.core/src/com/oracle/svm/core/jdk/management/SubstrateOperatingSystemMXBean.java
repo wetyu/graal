@@ -57,7 +57,7 @@ public abstract class SubstrateOperatingSystemMXBean extends SubstrateOperatingS
 
     @Override
     public String getArch() {
-        return SubstrateUtil.getArchitectureName();
+        return SubstrateUtil.getCurrentArchitectureName();
     }
 
     @Override

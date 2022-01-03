@@ -70,8 +70,8 @@ import static jdk.vm.ci.aarch64.AArch64.zr;
 import java.util.ArrayList;
 
 import org.graalvm.compiler.core.common.NumUtil;
+import org.graalvm.nativeimage.Platform;
 
-import com.oracle.svm.core.OS;
 import com.oracle.svm.core.ReservedRegisters;
 import com.oracle.svm.core.config.ObjectLayout;
 import com.oracle.svm.core.graal.code.SubstrateCallingConvention;
@@ -156,7 +156,7 @@ public class SubstrateAArch64RegisterConfig implements SubstrateRegisterConfig {
          *
          * https://docs.microsoft.com/en-us/cpp/build/arm64-windows-abi-conventions
          */
-        if (OS.DARWIN.isCurrent() || OS.WINDOWS.isCurrent()) {
+        if (Platform.includedIn(Platform.DARWIN.class) || Platform.includedIn(Platform.WINDOWS.class)) {
             regs.remove(r18);
         }
         allocatableRegs = new RegisterArray(regs);
@@ -311,7 +311,7 @@ public class SubstrateAArch64RegisterConfig implements SubstrateRegisterConfig {
             if (register != null) {
                 locations[i] = register.asValue(valueKindFactory.getValueKind(kind.getStackKind()));
             } else {
-                if (type.nativeABI() && OS.DARWIN.isCurrent()) {
+                if (type.nativeABI() && Platform.includedIn(Platform.DARWIN.class)) {
                     currentStackOffset = darwinNativeStackParameterAssignment(valueKindFactory, locations, i, kind, currentStackOffset, type.outgoing);
                 } else {
                     currentStackOffset = javaStackParameterAssignment(valueKindFactory, locations, i, kind, currentStackOffset, type.outgoing);

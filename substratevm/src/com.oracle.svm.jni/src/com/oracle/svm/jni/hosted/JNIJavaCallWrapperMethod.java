@@ -421,8 +421,8 @@ public final class JNIJavaCallWrapperMethod extends EntryPointCallStubMethod {
         int count = invokeSignature.getParameterCount(false);
         // Windows and iOS CallVariant.VA_LIST is identical to CallVariant.ARRAY
         // iOS CallVariant.VARARGS stores values as an array on the stack
-        if ((OS.getCurrent() == OS.DARWIN && Platform.includedIn(Platform.AARCH64.class) && (callVariant == CallVariant.VARARGS || callVariant == CallVariant.VA_LIST)) ||
-                        (OS.getCurrent() == OS.WINDOWS && callVariant == CallVariant.VA_LIST) || callVariant == CallVariant.ARRAY) {
+        if ((Platform.includedIn(Platform.DARWIN_AARCH64.class) && (callVariant == CallVariant.VARARGS || callVariant == CallVariant.VA_LIST)) ||
+                        (Platform.includedIn(Platform.WINDOWS.class) && callVariant == CallVariant.VA_LIST) || callVariant == CallVariant.ARRAY) {
             ResolvedJavaType elementType = metaAccess.lookupJavaType(JNIValue.class);
             int elementSize = SizeOf.get(JNIValue.class);
             ValueNode array;

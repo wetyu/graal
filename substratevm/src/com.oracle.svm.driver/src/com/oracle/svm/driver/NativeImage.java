@@ -100,10 +100,10 @@ public class NativeImage {
 
     static final boolean IS_AOT = Boolean.getBoolean("com.oracle.graalvm.isaot");
 
-    static final String platform = getPlatform();
+    static final String currentPlatform = getCurrentPlatform();
 
-    private static String getPlatform() {
-        return (OS.getCurrent().className + "-" + SubstrateUtil.getArchitectureName()).toLowerCase();
+    private static String getCurrentPlatform() {
+        return (OS.getCurrent().className + "-" + SubstrateUtil.getCurrentArchitectureName()).toLowerCase();
     }
 
     static final String graalvmVersion = System.getProperty("org.graalvm.version", "dev");
@@ -291,7 +291,7 @@ public class NativeImage {
                     assert executablePath != null;
                     Path binDir = executablePath.getParent();
                     Path rootDirCandidate = binDir.getParent();
-                    if (rootDirCandidate.endsWith(platform)) {
+                    if (rootDirCandidate.endsWith(currentPlatform)) {
                         rootDirCandidate = rootDirCandidate.getParent();
                     }
                     if (rootDirCandidate.endsWith(Paths.get("lib", "svm"))) {
@@ -1015,7 +1015,7 @@ public class NativeImage {
         completeOptionArgs();
         addTargetArguments();
 
-        String clibrariesPath = (targetPlatform != null) ? targetPlatform : platform;
+        String clibrariesPath = (targetPlatform != null) ? targetPlatform : currentPlatform;
         String clibrariesBuilderArg = config.getBuilderCLibrariesPaths().stream()
                         .map(path -> canonicalize(path.resolve(clibrariesPath)).toString())
                         .collect(Collectors.joining(",", oHCLibraryPath, ""));

@@ -78,7 +78,7 @@ public final class CAnnotationProcessorCache {
                 if (!values.containsKey(this)) {
                     // If user hasn't specified this option, we should determine optimal default
                     // value.
-                    if (!ExitAfterQueryCodeGeneration.getValue() && !ImageSingletons.lookup(Platform.class).getArchitecture().equals(SubstrateUtil.getArchitectureName())) {
+                    if (!ExitAfterQueryCodeGeneration.getValue() && !ImageSingletons.lookup(Platform.class).getArchitecture().equals(SubstrateUtil.getCurrentArchitectureName())) {
                         // If query code generation isn't explicitly requested, and we are running
                         // cross-arch build, CAP cache should be required (since we cannot run query
                         // code).

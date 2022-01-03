@@ -81,7 +81,7 @@ public class SubstrateUtil {
         HOSTED = true;
     }
 
-    public static String getArchitectureName() {
+    public static String getCurrentArchitectureName() {
         String arch = System.getProperty("os.arch");
         switch (arch) {
             case "x86_64":

@@ -377,7 +377,7 @@ public class NativeImageGenerator {
 
         String arch = System.getProperty("svm.targetPlatformArch");
         if (arch == null) {
-            arch = SubstrateUtil.getArchitectureName();
+            arch = SubstrateUtil.getCurrentArchitectureName();
         }
 
         return loadPlatform(os, arch);
