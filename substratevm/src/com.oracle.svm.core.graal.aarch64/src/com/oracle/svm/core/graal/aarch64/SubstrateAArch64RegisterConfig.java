@@ -247,7 +247,7 @@ public class SubstrateAArch64RegisterConfig implements SubstrateRegisterConfig {
      * For more details, see <a
      * href=https://developer.apple.com/documentation/xcode/writing-arm64-code-for-apple-platforms>https://developer.apple.com/documentation/xcode/writing-arm64-code-for-apple-platforms</a>.
      */
-    private int darwinNativeStackParameterAssignment(ValueKindFactory<?> valueKindFactory, AllocatableValue[] locations, int index, JavaKind kind, int currentStackOffset, boolean isOutgoing) {
+    private static int darwinNativeStackParameterAssignment(ValueKindFactory<?> valueKindFactory, AllocatableValue[] locations, int index, JavaKind kind, int currentStackOffset, boolean isOutgoing) {
         int paramByteSize = kind.getByteCount();
         int alignedStackOffset = NumUtil.roundUp(currentStackOffset, paramByteSize);
         locations[index] = StackSlot.get(valueKindFactory.getValueKind(kind), alignedStackOffset, !isOutgoing);
