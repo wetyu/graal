@@ -45,6 +45,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
+import com.oracle.graal.pointsto.util.TimerCollection;
 import org.graalvm.compiler.debug.DebugOptions;
 import org.graalvm.compiler.options.OptionValues;
 import org.graalvm.compiler.serviceprovider.GraalServices;
@@ -202,16 +203,16 @@ public class ProgressReporter {
         printStageStart(BuildStage.INITIALIZING);
     }
 
-    public void printInitializeEnd(Timer classlistTimer, Timer setupTimer) {
+    public void printInitializeEnd() {
         if (initializeStageEndCompleted) {
             return;
         }
-        printStageEnd(classlistTimer.getTotalTime() + setupTimer.getTotalTime());
+        printStageEnd(getTimer(TimerCollection.Registry.CLASSLIST).getTotalTime() + getTimer(TimerCollection.Registry.SETUP).getTotalTime());
         initializeStageEndCompleted = true;
     }
 
-    public void printInitializeEnd(Timer classlistTimer, Timer setupTimer, Collection<String> libraries) {
-        printInitializeEnd(classlistTimer, setupTimer);
+    public void printInitializeEnd(Collection<String> libraries) {
+        printInitializeEnd();
         l().a(" ").doclink("Version info", "#glossary-version-info").a(": '").a(ImageSingletons.lookup(VM.class).version).a("'").flushln();
         printNativeLibraries(libraries);
     }
@@ -245,7 +246,7 @@ public class ProgressReporter {
     }
 
     public ReporterClosable printAnalysis(BigBang bb) {
-        Timer timer = bb.getAnalysisTimer();
+        Timer timer = getTimer(TimerCollection.Registry.ANALYSIS);
         timer.start();
         printStageStart(BuildStage.ANALYSIS);
         printProgressStart();
@@ -254,7 +255,7 @@ public class ProgressReporter {
             public void closeAction() {
                 timer.stop();
                 printProgressEnd();
-                printStageEnd(bb.getAnalysisTimer());
+                printStageEnd(timer);
                 String actualVsTotalFormat = "%,8d (%5.2f%%) of %,6d";
                 long reachableClasses = bb.getUniverse().getTypes().stream().filter(t -> t.isReachable()).count();
                 long totalClasses = bb.getUniverse().getTypes().size();
@@ -287,7 +288,8 @@ public class ProgressReporter {
 
     }
 
-    public ReporterClosable printUniverse(Timer timer) {
+    public ReporterClosable printUniverse() {
+        Timer timer = getTimer(TimerCollection.Registry.UNIVERSE);
         timer.start();
         printStageStart(BuildStage.UNIVERSE);
         return new ReporterClosable() {
@@ -299,7 +301,8 @@ public class ProgressReporter {
         };
     }
 
-    public ReporterClosable printParsing(Timer timer) {
+    public ReporterClosable printParsing() {
+        Timer timer = getTimer(TimerCollection.Registry.PARSE);
         timer.start();
         printStageStart(BuildStage.PARSING);
         printProgressStart();
@@ -315,7 +318,8 @@ public class ProgressReporter {
         };
     }
 
-    public ReporterClosable printInlining(Timer timer) {
+    public ReporterClosable printInlining() {
+        Timer timer = getTimer(TimerCollection.Registry.INLINE);
         timer.start();
         printStageStart(BuildStage.INLINING);
         printProgressStart();
@@ -335,7 +339,8 @@ public class ProgressReporter {
         numStageChars = 0;
     }
 
-    public ReporterClosable printCompiling(Timer timer) {
+    public ReporterClosable printCompiling() {
+        Timer timer = getTimer(TimerCollection.Registry.COMPILE);
         timer.start();
         printStageStart(BuildStage.COMPILING);
         printProgressStart();
@@ -360,9 +365,11 @@ public class ProgressReporter {
         this.debugInfoTimer = timer;
     }
 
-    public void printCreationEnd(Timer creationTimer, Timer writeTimer, int imageSize, AnalysisUniverse universe, int numHeapObjects, long imageHeapSize, int codeCacheSize,
+    public void printCreationEnd(int imageSize, AnalysisUniverse universe, int numHeapObjects, long imageHeapSize, int codeCacheSize,
                     int numCompilations, int debugInfoSize) {
-        printStageEnd(creationTimer.getTotalTime() + writeTimer.getTotalTime());
+        Timer imageTimer = getTimer(TimerCollection.Registry.IMAGE);
+        Timer writeTimer = getTimer(TimerCollection.Registry.WRITE);
+        printStageEnd(imageTimer.getTotalTime() + writeTimer.getTotalTime());
         String format = "%9s (%5.2f%%) for ";
         l().a(format, bytesToHuman(codeCacheSize), codeCacheSize / (double) imageSize * 100)
                         .doclink("code area", "#glossary-code-area").a(":%,9d compilation units", numCompilations).flushln();
@@ -485,7 +492,7 @@ public class ProgressReporter {
         return classNameToSize;
     }
 
-    public void printEpilog(String imageName, NativeImageGenerator generator, boolean wasSuccessfulBuild, Timer totalTimer, OptionValues parsedHostedOptions) {
+    public void printEpilog(String imageName, NativeImageGenerator generator, boolean wasSuccessfulBuild, OptionValues parsedHostedOptions) {
         l().printLineSeparator();
         printResourceStats();
         l().printLineSeparator();
@@ -503,7 +510,7 @@ public class ProgressReporter {
 
         l().printHeadlineSeparator();
 
-        double totalSeconds = millisToSeconds(totalTimer.getTotalTime());
+        double totalSeconds = millisToSeconds(getTimer(TimerCollection.Registry.TOTAL).getTotalTime());
         String timeStats;
         if (totalSeconds < 60) {
             timeStats = String.format("%.1fs", totalSeconds);
@@ -651,6 +658,10 @@ public class ProgressReporter {
     /*
      * HELPERS
      */
+
+    private static Timer getTimer(TimerCollection.Registry type) {
+        return TimerCollection.singleton().get(type);
+    }
 
     private static void resetANSIMode() {
         NativeImageSystemIOWrappers.singleton().getOut().print(ANSIColors.RESET);

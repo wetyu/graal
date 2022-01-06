@@ -183,16 +183,6 @@ public abstract class PointsToAnalysis implements BigBang {
     }
 
     @Override
-    public Timer getAnalysisTimer() {
-        return analysisTimer;
-    }
-
-    @Override
-    public Timer getProcessFeaturesTimer() {
-        return processFeaturesTimer;
-    }
-
-    @Override
     public void printTimers() {
         typeFlowTimer.print();
         checkObjectsTimer.print();
@@ -749,7 +739,7 @@ public abstract class PointsToAnalysis implements BigBang {
                 /*
                  * Allow features to change the universe.
                  */
-                try (StopTimer t2 = getProcessFeaturesTimer().start()) {
+                try (StopTimer t2 = processFeaturesTimer.start()) {
                     int numTypes = universe.getTypes().size();
                     int numMethods = universe.getMethods().size();
                     int numFields = universe.getFields().size();
