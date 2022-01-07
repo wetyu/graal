@@ -28,6 +28,7 @@ import java.lang.annotation.Annotation;
 import java.util.Arrays;
 import java.util.Iterator;
 
+import com.oracle.svm.core.OS;
 import org.graalvm.compiler.core.common.calc.FloatConvert;
 import org.graalvm.compiler.core.common.type.StampFactory;
 import org.graalvm.compiler.debug.DebugContext;
@@ -151,6 +152,8 @@ public final class CEntryPointCallStubMethod extends EntryPointCallStubMethod {
 
         ValueNode[] args = kit.loadArguments(parameterLoadTypes).toArray(new ValueNode[0]);
 
+        adaptParameterForNativeABI(kit, parameterLoadTypes, args);
+
         InvokeWithExceptionNode invokePrologue = generatePrologue(providers, kit, parameterLoadTypes, targetMethod.getParameterAnnotations(), args);
         if (invokePrologue != null) {
             ResolvedJavaMethod prologueMethod = invokePrologue.callTarget().targetMethod();
@@ -219,6 +222,33 @@ public final class CEntryPointCallStubMethod extends EntryPointCallStubMethod {
         kit.createReturn(returnValue, returnValue.getStackKind());
 
         return kit.finalizeGraph();
+    }
+
+    private void adaptParameterForNativeABI(HostedGraphKit kit, JavaType[] parameterTypes, ValueNode[] args) {
+        if (!OS.DARWIN.isCurrent()) {
+            return;
+        }
+        // force native ABI bitness for arguments passed on the stack, see
+        // com.oracle.svm.core.graal.aarch64.SubstrateAArch64RegisterConfig#darwinNativeStackParameterAssignment
+        for (int i = 8; i < args.length; i++) {
+            ParameterNode arg = (ParameterNode) args[i];
+            ResolvedJavaType type = (ResolvedJavaType) parameterTypes[i];
+            JavaKind readKind = type.getJavaKind();
+            if (!readKind.isNumericInteger()) {
+                continue;
+            }
+            int readWidth = readKind.getBitCount();
+            int stackWidth = readKind.getStackKind().getBitCount();
+            if (readWidth == stackWidth) {
+                continue;
+            }
+            arg.setStamp(StampFactory.forInteger(readWidth));
+            if (readKind.isUnsigned()) {
+                args[i] = kit.unique(new ZeroExtendNode(arg, stackWidth));
+            } else {
+                args[i] = kit.unique(new SignExtendNode(arg, stackWidth));
+            }
+        }
     }
 
     private StructuredGraph buildBuiltinGraph(DebugContext debug, ResolvedJavaMethod method, HostedProviders providers) {
