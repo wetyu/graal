@@ -862,10 +862,9 @@ public abstract class JavaThreads {
     }
 
     /** Interruptibly park the current thread. */
-    static void platformPark() {
+    static void platformOrCarrierPark() {
         VMOperationControl.guaranteeOkayToBlock("[JavaThreads.park(): Should not park when it is not okay to block.]");
-        Thread thread = Thread.currentThread();
-        assert !isVirtual(thread);
+        Thread thread = platformThread.get();
         if (isInterrupted(thread)) { // avoid state changes and synchronization
             return;
         }
@@ -887,10 +886,9 @@ public abstract class JavaThreads {
     }
 
     /** Interruptibly park the current thread for the given number of nanoseconds. */
-    static void platformPark(long delayNanos) {
+    static void platformOrCarrierPark(long delayNanos) {
         VMOperationControl.guaranteeOkayToBlock("[JavaThreads.park(long): Should not park when it is not okay to block.]");
-        Thread thread = Thread.currentThread();
-        assert !isVirtual(thread);
+        Thread thread = platformThread.get();
         if (isInterrupted(thread)) { // avoid state changes and synchronization
             return;
         }
@@ -913,8 +911,8 @@ public abstract class JavaThreads {
     /**
      * Unpark a Thread.
      *
-     * @see #platformPark()
-     * @see #platformPark(long)
+     * @see #platformOrCarrierPark()
+     * @see #platformOrCarrierPark(long)
      */
     static void platformUnpark(Thread thread) {
         assert !isVirtual(thread);
